@@ -28,6 +28,7 @@ export interface Database {
           "id" | "created_at" | "updated_at"
         >;
         Update: Partial<Database["public"]["Tables"]["projects"]["Insert"]>;
+        Relationships: [];
       };
       import_logs: {
         Row: {
@@ -45,6 +46,15 @@ export interface Database {
           "id" | "imported_at"
         >;
         Update: Partial<Database["public"]["Tables"]["import_logs"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "import_logs_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       jira_issues: {
         Row: {
@@ -64,6 +74,15 @@ export interface Database {
         };
         Insert: Omit<Database["public"]["Tables"]["jira_issues"]["Row"], "id">;
         Update: Partial<Database["public"]["Tables"]["jira_issues"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "jira_issues_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       jira_sprints: {
         Row: {
@@ -82,6 +101,15 @@ export interface Database {
           "id"
         >;
         Update: Partial<Database["public"]["Tables"]["jira_sprints"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "jira_sprints_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       oa_timesheets: {
         Row: {
@@ -102,6 +130,15 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["oa_timesheets"]["Insert"]
         >;
+        Relationships: [
+          {
+            foreignKeyName: "oa_timesheets_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       oa_milestones: {
         Row: {
@@ -120,6 +157,15 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["oa_milestones"]["Insert"]
         >;
+        Relationships: [
+          {
+            foreignKeyName: "oa_milestones_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       oa_budget_entries: {
         Row: {
@@ -138,6 +184,15 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["oa_budget_entries"]["Insert"]
         >;
+        Relationships: [
+          {
+            foreignKeyName: "oa_budget_entries_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       project_thresholds: {
         Row: {
@@ -159,6 +214,15 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["project_thresholds"]["Insert"]
         >;
+        Relationships: [
+          {
+            foreignKeyName: "project_thresholds_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: true;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
