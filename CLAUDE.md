@@ -156,7 +156,17 @@ Jedes Feature wird als User Story formuliert. Akzeptanzkriterien sind testbar.
 
 ---
 
-## 4. Testing-Regeln
+## 4. Development Workflow
+
+For every feature, follow this sequence without exception:
+
+1. **Requirements first** — Create `docs/req/FEAT-XXX.md` with the sections User Story, Background, Acceptance Criteria (Gherkin), Notes before writing any code.
+2. **TDD for logic** — For parsers, KPI calculations, stability index, and Zod validation schemas: write the tests first, then implement until they pass.
+3. **Implement then test for UI** — For Server Components, pages, and simple UI components: implement first, then write tests. The mocking overhead for async Server Components makes upfront tests a net negative.
+
+---
+
+## 4a. Testing-Regeln
 
 ### Pflicht
 - Jede Parser-Funktion (`jira-parser.ts`, `openair-parser.ts`) hat Unit Tests

@@ -10,6 +10,12 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(() => ({ getAll: () => [], set: vi.fn() })),
 }));
 
+vi.mock("@/components/dashboard/create-project-dialog", () => ({
+  CreateProjectDialog: ({ label = "New Project" }: { label?: string }) => (
+    <button>{label}</button>
+  ),
+}));
+
 import { createClient } from "@/lib/supabase/server";
 import ProjectsPage from "@/app/(dashboard)/page";
 
@@ -41,7 +47,6 @@ function queryChain(data: unknown) {
   chain.then = promise.then.bind(promise);
   chain.catch = promise.catch.bind(promise);
   chain.finally = promise.finally.bind(promise);
-  chain[Symbol.toStringTag] = "Promise";
   return chain;
 }
 

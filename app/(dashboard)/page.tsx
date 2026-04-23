@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProjectCard } from "@/components/dashboard/project-card";
-import { Button } from "@/components/ui/button";
+import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog";
 
 export default async function ProjectsPage() {
   const supabase = createClient();
@@ -38,8 +38,7 @@ export default async function ProjectsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Projects</h1>
-        {/* CreateProjectDialog will be wired here in Phase 2.2 */}
-        <Button>New Project</Button>
+        <CreateProjectDialog />
       </div>
 
       {projectList.length === 0 ? (
@@ -48,7 +47,7 @@ export default async function ProjectsPage() {
           <p className="mb-6 text-sm text-muted-foreground">
             Create your first project to get started.
           </p>
-          <Button>Create First Project</Button>
+          <CreateProjectDialog label="Create First Project" />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
