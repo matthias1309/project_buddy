@@ -107,6 +107,8 @@ export interface ScopeKPIs {
   completionPct: number;
   velocityTrend: number[];
   bugRate: number;
+  /** Growth of total story points relative to the sum of sprint planned points. 0 when no sprint baseline exists. */
+  scopeGrowthPct: number;
 }
 
 // --- Stability ---
