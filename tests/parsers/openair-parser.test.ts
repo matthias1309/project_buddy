@@ -194,12 +194,12 @@ describe("openairParser", () => {
       };
     }
 
-    it("should extract team name from '- Team X' suffix", () => {
+    it("should extract team name including 'Team' prefix from '- Team X' suffix", () => {
       const buf = buildBuffer({ Timesheets: [newFormatRow()] });
       const result = parseOpenAirExcel(buf);
 
       expect(result.timesheets).toHaveLength(1);
-      expect(result.timesheets[0].team).toBe("Alpha");
+      expect(result.timesheets[0].team).toBe("Team Alpha");
     });
 
     it("should set team to undefined when no '- Team' suffix is present", () => {
@@ -217,7 +217,27 @@ describe("openairParser", () => {
       });
       const result = parseOpenAirExcel(buf);
 
-      expect(result.timesheets[0].team).toBe("Backend Core");
+      expect(result.timesheets[0].team).toBe("Team Backend Core");
+    });
+
+    it("should handle en-dash separator (–) instead of ASCII hyphen", () => {
+      const buf = buildBuffer({
+        Timesheets: [newFormatRow({ Project: "2501P146179 – Team Panda" })],
+      });
+      const result = parseOpenAirExcel(buf);
+
+      expect(result.timesheets[0].team).toBe("Team Panda");
+    });
+
+    it("should match real OpenAir project format with multiple segments", () => {
+      const buf = buildBuffer({
+        Timesheets: [
+          newFormatRow({ Project: "2501P146179-PI26.1 Part 1 - Ost - ODP Dev - Team Panda" }),
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+
+      expect(result.timesheets[0].team).toBe("Team Panda");
     });
 
     it("should set team to undefined when Project column is absent", () => {
@@ -531,7 +551,7 @@ describe("openairParser", () => {
 
       expect(result.timesheets).toHaveLength(1);
       const ts = result.timesheets[0];
-      expect(ts.team).toBe("Omega");
+      expect(ts.team).toBe("Team Omega");
       expect(ts.ticketRef).toBe("ABC-42");
       expect(ts.taskCategory).toBe("Development");
       expect(ts.bookedHours).toBe(7.5);

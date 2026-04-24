@@ -96,7 +96,9 @@ function detectBlockType(headers: string[]): BlockType {
 // --- Timesheets ---
 
 function extractTeam(projectValue: string): string | undefined {
-  const match = /- Team (.+)$/.exec(projectValue);
+  // Handles both ASCII hyphen (-) and en-dash (–) as separators.
+  // Returns the full "Team <name>" string, e.g. "Team Panda".
+  const match = /[-–]\s*(Team\s+.+)$/i.exec(projectValue);
   return match ? match[1].trim() : undefined;
 }
 
