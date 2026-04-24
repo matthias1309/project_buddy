@@ -8,6 +8,7 @@ import {
   resetThresholds,
   type ThresholdActionState,
 } from "@/lib/actions/threshold.actions";
+import { ERRORS } from "@/lib/errors";
 import type { ThresholdsInput } from "@/lib/validations/thresholds.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,7 +113,7 @@ export function ThresholdsForm({
         setShowResetDialog(false);
         router.refresh();
       } else {
-        setResetError(result.globalError ?? "An error occurred.");
+        setResetError(result.globalError ?? ERRORS.GENERIC);
       }
     });
   }

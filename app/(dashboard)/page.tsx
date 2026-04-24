@@ -126,8 +126,6 @@ export default async function ProjectsPage() {
     thresholdsByProject[t.project_id] = t;
   }
 
-  const today = new Date();
-
   // Compute stability per project
   const stabilityByProject: Record<string, ProjectStability> = {};
   for (const project of projectList) {
@@ -215,7 +213,7 @@ export default async function ProjectsPage() {
       : DEFAULT_THRESHOLDS;
 
     const budgetKPIs = calcBudgetKPIs(budgetEntries, project.total_budget_eur);
-    const scheduleKPIs = calcScheduleKPIs(milestones, today);
+    const scheduleKPIs = calcScheduleKPIs(milestones);
     const resourceKPIs = calcResourceKPIs(timesheets);
     const scopeKPIs = calcScopeKPIs(issues, sprints);
     const stability = calcStabilityIndex(

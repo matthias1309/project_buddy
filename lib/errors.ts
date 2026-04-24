@@ -8,6 +8,8 @@ export const ERRORS = {
   IMPORT_PARSE_ERROR: "The file could not be parsed.",
   IMPORT_MISSING_REQUIRED_COLUMN: "A required column is missing.",
   THRESHOLD_INVALID_RANGE: "Red threshold must be stricter than yellow threshold.",
+  PROJECT_INVALID_DATE: "Invalid date format (YYYY-MM-DD).",
+  IMPORT_NETWORK_ERROR: "Network error — please try again.",
   GENERIC: "An unexpected error occurred. Please try again.",
 } as const;
 

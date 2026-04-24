@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ERRORS } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import type { ParseError } from "@/types/domain.types";
 
@@ -59,7 +60,7 @@ export function UploadZone({
       });
       router.refresh();
     } catch {
-      setState({ type: "error", message: "Network error — please try again" });
+      setState({ type: "error", message: ERRORS.IMPORT_NETWORK_ERROR });
     }
   }
 

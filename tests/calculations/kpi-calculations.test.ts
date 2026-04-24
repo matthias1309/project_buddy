@@ -99,8 +99,6 @@ describe("calcBudgetKPIs", () => {
 // ─────────────────────────────────────────────
 
 describe("calcScheduleKPIs", () => {
-  const TODAY = new Date("2024-04-01");
-
   const MILESTONES: OAMilestone[] = [
     { name: "Kick-off",      plannedDate: new Date("2024-01-05"), actualDate: new Date("2024-01-05"), status: "completed" },
     { name: "Design-Abnahme",plannedDate: new Date("2024-02-15"), actualDate: new Date("2024-02-20"), status: "completed" }, // delayed 5 days
@@ -109,22 +107,22 @@ describe("calcScheduleKPIs", () => {
   ];
 
   it("counts total milestones correctly", () => {
-    const r = calcScheduleKPIs(MILESTONES, TODAY);
+    const r = calcScheduleKPIs(MILESTONES);
     expect(r.totalMilestones).toBe(4);
   });
 
   it("counts milestones where actualDate > plannedDate as delayed", () => {
-    const r = calcScheduleKPIs(MILESTONES, TODAY);
+    const r = calcScheduleKPIs(MILESTONES);
     expect(r.delayedMilestones).toBe(2); // Design-Abnahme + Go-Live
   });
 
   it("computes maxDelayDays as the largest delay", () => {
-    const r = calcScheduleKPIs(MILESTONES, TODAY);
+    const r = calcScheduleKPIs(MILESTONES);
     expect(r.maxDelayDays).toBe(14); // Go-Live: Apr 15 − Apr 1
   });
 
   it("identifies the next non-completed milestone with the earliest planned date", () => {
-    const r = calcScheduleKPIs(MILESTONES, TODAY);
+    const r = calcScheduleKPIs(MILESTONES);
     // Go-Live (status=delayed) has plannedDate Apr 1; Retrospektive has May 1 – Go-Live is earlier
     expect(r.nextMilestone).not.toBeNull();
     expect(r.nextMilestone?.name).toBe("Go-Live");
@@ -134,12 +132,12 @@ describe("calcScheduleKPIs", () => {
     const allDone: OAMilestone[] = [
       { name: "M1", plannedDate: new Date("2024-01-01"), status: "completed" },
     ];
-    const r = calcScheduleKPIs(allDone, TODAY);
+    const r = calcScheduleKPIs(allDone);
     expect(r.nextMilestone).toBeNull();
   });
 
   it("returns zeros and null for empty milestones", () => {
-    const r = calcScheduleKPIs([], TODAY);
+    const r = calcScheduleKPIs([]);
     expect(r.totalMilestones).toBe(0);
     expect(r.delayedMilestones).toBe(0);
     expect(r.maxDelayDays).toBe(0);
@@ -150,7 +148,7 @@ describe("calcScheduleKPIs", () => {
     const milestones: OAMilestone[] = [
       { name: "M1", plannedDate: new Date("2024-03-01"), actualDate: new Date("2024-03-01"), status: "completed" },
     ];
-    const r = calcScheduleKPIs(milestones, TODAY);
+    const r = calcScheduleKPIs(milestones);
     expect(r.delayedMilestones).toBe(0);
     expect(r.maxDelayDays).toBe(0);
   });
@@ -159,7 +157,7 @@ describe("calcScheduleKPIs", () => {
     const milestones: OAMilestone[] = [
       { name: "Future", plannedDate: new Date("2024-06-01"), status: "open" },
     ];
-    const r = calcScheduleKPIs(milestones, TODAY);
+    const r = calcScheduleKPIs(milestones);
     expect(r.delayedMilestones).toBe(0);
   });
 });

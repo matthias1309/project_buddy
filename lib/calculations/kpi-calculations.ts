@@ -62,7 +62,6 @@ export function calcBudgetKPIs(
 
 export function calcScheduleKPIs(
   milestones: OAMilestone[],
-  _today: Date,
 ): ScheduleKPIs {
   let delayedMilestones = 0;
   let maxDelayDays = 0;

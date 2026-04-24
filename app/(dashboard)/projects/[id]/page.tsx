@@ -147,9 +147,8 @@ export default async function ProjectDashboardPage({ params }: Props) {
     : DEFAULT_THRESHOLDS;
 
   // Compute KPIs server-side
-  const today = new Date();
   const budgetKPIs = calcBudgetKPIs(budgetEntries, project.total_budget_eur);
-  const scheduleKPIs = calcScheduleKPIs(milestones, today);
+  const scheduleKPIs = calcScheduleKPIs(milestones);
   const resourceKPIs = calcResourceKPIs(timesheets);
   const scopeKPIs = calcScopeKPIs(issues, sprints);
   const stability = calcStabilityIndex(

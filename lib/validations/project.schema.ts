@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { ERRORS } from "@/lib/errors";
 
 const dateString = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, ERRORS.PROJECT_INVALID_DATE);
 
 export const CreateProjectSchema = z
   .object({
