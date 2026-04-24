@@ -375,6 +375,19 @@ describe("openairParser", () => {
       expect(result.warnings.every((w) => !/task|category/i.test(w))).toBe(true);
     });
 
+    it("should not stop parsing after a row with task 'Steuerung' (eur substring false-positive)", () => {
+      const buf = buildBuffer({
+        Timesheets: [
+          { Date: "2026-01-01", Project: "P - Team A", Task: "Development", Hours: 4, Status: "submitted" },
+          { Date: "2026-01-02", Project: "P - Team A", Task: "Steuerung", Hours: 2, Status: "submitted" },
+          { Date: "2026-01-03", Project: "P - Team A", Task: "Development", Hours: 6, Status: "submitted" },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+
+      expect(result.timesheets).toHaveLength(3);
+    });
+
     it("should match 'Regular Meeting - Weekly Sync' to canonical category 'Regular Meeting'", () => {
       const buf = buildBuffer({
         Timesheets: [

@@ -83,7 +83,7 @@ function detectBlockType(headers: string[]): BlockType {
   if (hasEmployee || hasHours) return "timesheets";
 
   const hasCategory = COL_CATEGORY.some((c) => norm.includes(c));
-  const hasEur = norm.some((h) => h.includes("eur") || h.includes("budget"));
+  const hasEur = [...COL_PLANNED_EUR, ...COL_ACTUAL_EUR].some((c) => norm.includes(c));
   if (hasCategory || hasEur) return "budget";
 
   const hasName = COL_MILESTONE_NAME.some((c) => norm.includes(c));
