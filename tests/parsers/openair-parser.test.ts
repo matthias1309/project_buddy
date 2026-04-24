@@ -356,6 +356,42 @@ describe("openairParser", () => {
 
       expect(result.warnings.every((w) => !/task|category/i.test(w))).toBe(true);
     });
+
+    it("should match 'Organization (PO & ScM)' to canonical category 'Organization'", () => {
+      const buf = buildBuffer({
+        Timesheets: [
+          {
+            Date: "2026-01-01",
+            Project: "P - Team A",
+            Task: "Organization (PO & ScM)",
+            Hours: 3,
+            Status: "submitted",
+          },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+
+      expect(result.timesheets[0].taskCategory).toBe("Organization");
+      expect(result.warnings.every((w) => !/task|category/i.test(w))).toBe(true);
+    });
+
+    it("should match 'Regular Meeting - Weekly Sync' to canonical category 'Regular Meeting'", () => {
+      const buf = buildBuffer({
+        Timesheets: [
+          {
+            Date: "2026-01-01",
+            Project: "P - Team A",
+            Task: "Regular Meeting - Weekly Sync",
+            Hours: 1,
+            Status: "approved",
+          },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+
+      expect(result.timesheets[0].taskCategory).toBe("Regular Meeting");
+      expect(result.warnings.every((w) => !/task|category/i.test(w))).toBe(true);
+    });
   });
 
   describe("status-based row filtering (FEAT-008)", () => {
@@ -430,6 +466,36 @@ describe("openairParser", () => {
       const result = parseOpenAirExcel(buf);
 
       expect(result.warnings.some((w) => /skip|reject|open/i.test(w))).toBe(true);
+    });
+  });
+
+  describe("budget warning suppression for new-format (FEAT-008)", () => {
+    it("should NOT emit a budget warning for new-format timesheet-only exports", () => {
+      const buf = buildBuffer({
+        Timesheets: [
+          {
+            Date: "2026-01-15",
+            Project: "P - Team A",
+            Task: "Development",
+            Hours: 5,
+            Status: "submitted",
+          },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+
+      expect(result.warnings.every((w) => !/budget/i.test(w))).toBe(true);
+    });
+
+    it("should still emit a budget warning for old-format files without budget sheet", () => {
+      const buf = buildBuffer({
+        Timesheets: [
+          { Mitarbeiter: "Alice", Rolle: "SC", "Gebuchte Stunden": 10 },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+
+      expect(result.warnings.some((w) => /budget/i.test(w))).toBe(true);
     });
   });
 

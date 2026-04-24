@@ -110,6 +110,7 @@ function parseTimesheetRows(
   startRow: number,
   timesheets: OATimesheet[],
   warnings: string[],
+  foundNewFormat: { value: boolean },
 ): void {
   const headerRow = (rows[startRow] as unknown[]).map((h) => cellString(h));
 
@@ -126,6 +127,7 @@ function parseTimesheetRows(
   const colBookingStatus = findColumnIndex(headerRow, COL_BOOKING_STATUS);
 
   const isNewFormat = colProject !== -1;
+  if (isNewFormat) foundNewFormat.value = true;
   let skippedRows = 0;
 
   for (let i = startRow + 1; i < rows.length; i++) {
@@ -165,8 +167,11 @@ function parseTimesheetRows(
     const phaseRaw = colPhase !== -1 ? cellString(row[colPhase]) || undefined : undefined;
     let taskCategory: string | undefined;
     if (isNewFormat && phaseRaw !== undefined) {
-      if ((VALID_TASK_CATEGORIES as readonly string[]).includes(phaseRaw)) {
-        taskCategory = phaseRaw;
+      const matched = (VALID_TASK_CATEGORIES as readonly string[]).find((cat) =>
+        phaseRaw.toLowerCase().startsWith(cat.toLowerCase()),
+      );
+      if (matched) {
+        taskCategory = matched;
       } else {
         taskCategory = undefined;
         warnings.push(
@@ -270,12 +275,13 @@ function dispatchSheet(
   milestones: OAMilestone[],
   warnings: string[],
   foundBudget: { value: boolean },
+  foundNewFormat: { value: boolean },
 ): void {
   if (rows.length === 0) return;
 
   // Named sheet detection
   if (/timesheet|stunden/i.test(sheetName)) {
-    parseTimesheetRows(rows, 0, timesheets, warnings);
+    parseTimesheetRows(rows, 0, timesheets, warnings, foundNewFormat);
     return;
   }
   if (/budget|kosten/i.test(sheetName)) {
@@ -297,7 +303,7 @@ function dispatchSheet(
     const blockType = detectBlockType(headers);
 
     if (blockType === "timesheets") {
-      parseTimesheetRows(rows, i, timesheets, warnings);
+      parseTimesheetRows(rows, i, timesheets, warnings, foundNewFormat);
       return;
     }
     if (blockType === "budget") {
@@ -322,14 +328,15 @@ export function parseOpenAirExcel(buffer: Buffer): OpenAirParseResult {
   const budgetEntries: OABudgetEntry[] = [];
   const warnings: string[] = [];
   const foundBudget = { value: false };
+  const foundNewFormat = { value: false };
 
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
-    dispatchSheet(sheetName, rows, timesheets, budgetEntries, milestones, warnings, foundBudget);
+    dispatchSheet(sheetName, rows, timesheets, budgetEntries, milestones, warnings, foundBudget, foundNewFormat);
   }
 
-  if (!foundBudget.value) {
+  if (!foundBudget.value && !foundNewFormat.value) {
     warnings.push("Budget data not found — budget KPIs cannot be calculated");
   }
 
