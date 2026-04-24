@@ -213,11 +213,18 @@ export default async function ProjectDashboardPage({ params }: Props) {
             </span>
             <StabilityBadge status={stability.status} />
           </div>
-          <Link href={`/projects/${params.id}/import`}>
-            <Button variant="outline" size="sm">
-              Daten importieren
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={`/projects/${params.id}/import`}>
+              <Button variant="outline" size="sm">
+                Daten importieren
+              </Button>
+            </Link>
+            <Link href={`/projects/${params.id}/settings`}>
+              <Button variant="outline" size="sm">
+                Einstellungen
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
