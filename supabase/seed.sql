@@ -21,7 +21,15 @@ BEGIN
     updated_at,
     raw_app_meta_data,
     raw_user_meta_data,
-    is_super_admin
+    is_super_admin,
+    confirmation_token,
+    recovery_token,
+    email_change_token_new,
+    email_change,
+    email_change_token_current,
+    phone_change,
+    phone_change_token,
+    reauthentication_token
   ) VALUES (
     '00000000-0000-0000-0000-000000000000',
     v_user_id,
@@ -34,7 +42,15 @@ BEGIN
     now(),
     '{"provider":"email","providers":["email"]}',
     '{}',
-    false
+    false,
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
   ) ON CONFLICT (id) DO NOTHING;
 
   -- Required for email/password login to work
