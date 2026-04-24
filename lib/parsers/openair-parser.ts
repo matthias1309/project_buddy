@@ -14,6 +14,18 @@ const COL_PLANNED_HOURS = ["geplante stunden", "planned hours", "budget hours"];
 const COL_BOOKED_HOURS = ["gebuchte stunden", "actual hours", "hours"];
 const COL_PERIOD = ["datum", "date", "period", "periode"];
 
+// FEAT-008: new-format columns
+const COL_PROJECT = ["project", "projekt"];
+const COL_NOTES = ["notes", "notizen", "bemerkung", "kommentar"];
+const COL_BOOKING_STATUS = ["status"];
+
+const VALID_TASK_CATEGORIES = [
+  "Regular Meeting",
+  "Development",
+  "Steuerung",
+  "Organization",
+] as const;
+
 const COL_CATEGORY = ["kategorie", "category"];
 const COL_PLANNED_EUR = ["geplant (eur)", "planned (eur)", "geplant eur", "planned eur", "budget"];
 const COL_ACTUAL_EUR = ["ist (eur)", "actual (eur)", "ist eur", "actual eur", "actual"];
@@ -83,6 +95,16 @@ function detectBlockType(headers: string[]): BlockType {
 
 // --- Timesheets ---
 
+function extractTeam(projectValue: string): string | undefined {
+  const match = /- Team (.+)$/.exec(projectValue);
+  return match ? match[1].trim() : undefined;
+}
+
+function extractTicketRef(notesValue: string): string | undefined {
+  const match = /\b([A-Z]+-\d+)\b/.exec(notesValue);
+  return match ? match[1] : undefined;
+}
+
 function parseTimesheetRows(
   rows: unknown[][],
   startRow: number,
@@ -98,6 +120,14 @@ function parseTimesheetRows(
   const colBooked = findColumnIndex(headerRow, COL_BOOKED_HOURS);
   const colPeriod = findColumnIndex(headerRow, COL_PERIOD);
 
+  // FEAT-008: new-format columns
+  const colProject = findColumnIndex(headerRow, COL_PROJECT);
+  const colNotes = findColumnIndex(headerRow, COL_NOTES);
+  const colBookingStatus = findColumnIndex(headerRow, COL_BOOKING_STATUS);
+
+  const isNewFormat = colProject !== -1;
+  let skippedRows = 0;
+
   for (let i = startRow + 1; i < rows.length; i++) {
     const row = rows[i] as unknown[];
     if (isEmptyRow(row)) continue;
@@ -105,6 +135,15 @@ function parseTimesheetRows(
     // Stop if we hit another header block
     const rowHeaders = row.map((h) => cellString(h));
     if (detectBlockType(rowHeaders) !== null && i !== startRow + 1) break;
+
+    // FEAT-008: status filter — only submitted/approved when Status column present
+    if (colBookingStatus !== -1) {
+      const status = cellString(row[colBookingStatus]).toLowerCase();
+      if (status !== "submitted" && status !== "approved") {
+        skippedRows++;
+        continue;
+      }
+    }
 
     const bookedHours = colBooked !== -1 ? cellNumber(row[colBooked]) : undefined;
 
@@ -114,14 +153,45 @@ function parseTimesheetRows(
       );
     }
 
+    // FEAT-008: team extraction
+    const projectRaw = colProject !== -1 ? cellString(row[colProject]) : "";
+    const team = projectRaw ? extractTeam(projectRaw) : undefined;
+
+    // FEAT-008: ticketRef extraction
+    const notesRaw = colNotes !== -1 ? cellString(row[colNotes]) : "";
+    const ticketRef = notesRaw ? extractTicketRef(notesRaw) : undefined;
+
+    // FEAT-008: taskCategory — validated only in new-format files
+    const phaseRaw = colPhase !== -1 ? cellString(row[colPhase]) || undefined : undefined;
+    let taskCategory: string | undefined;
+    if (isNewFormat && phaseRaw !== undefined) {
+      if ((VALID_TASK_CATEGORIES as readonly string[]).includes(phaseRaw)) {
+        taskCategory = phaseRaw;
+      } else {
+        taskCategory = undefined;
+        warnings.push(
+          `Unknown task category "${phaseRaw}" in row ${i + 1} — expected one of: ${VALID_TASK_CATEGORIES.join(", ")}`,
+        );
+      }
+    }
+
     timesheets.push({
       employeeName: colEmployee !== -1 ? cellString(row[colEmployee]) || undefined : undefined,
       role: colRole !== -1 ? cellString(row[colRole]) || undefined : undefined,
-      phase: colPhase !== -1 ? cellString(row[colPhase]) || undefined : undefined,
+      phase: phaseRaw,
       plannedHours: colPlanned !== -1 ? cellNumber(row[colPlanned]) : undefined,
       bookedHours,
       periodDate: colPeriod !== -1 ? cellDate(row[colPeriod]) : undefined,
+      team,
+      ticketRef,
+      taskCategory,
     });
+  }
+
+  if (skippedRows > 0) {
+    warnings.push(
+      `${skippedRows} timesheet row${skippedRows > 1 ? "s" : ""} skipped — status was not submitted or approved`,
+    );
   }
 }
 

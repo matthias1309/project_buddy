@@ -119,6 +119,22 @@ export default async function ProjectsPage() {
   const issuesByProject = groupBy(rawIssues ?? [], "project_id");
   const sprintsByProject = groupBy(rawSprints ?? [], "project_id");
   const timesheetsByProject = groupBy(rawTimesheets ?? [], "project_id");
+
+  // Current-month hours per project (null = no OA import at all → show "—")
+  const now = new Date();
+  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthlyHoursByProject: Record<string, number | null> = {};
+  for (const project of projectList) {
+    const pid = project.id;
+    const sheets = timesheetsByProject[pid];
+    if (!sheets || sheets.length === 0) {
+      monthlyHoursByProject[pid] = null;
+    } else {
+      monthlyHoursByProject[pid] = sheets
+        .filter((t) => typeof t.period_date === "string" && t.period_date.startsWith(monthPrefix))
+        .reduce((sum, t) => sum + (t.booked_hours ?? 0), 0);
+    }
+  }
   const milestonesByProject = groupBy(rawMilestones ?? [], "project_id");
   const budgetByProject = groupBy(rawBudget ?? [], "project_id");
   const thresholdsByProject: Record<string, NonNullable<typeof rawThresholds>[number]> = {};
@@ -258,6 +274,7 @@ export default async function ProjectsPage() {
               stabilityStatus={s.status}
               criticalDimension={s.criticalDimension}
               hint={s.hint}
+              monthlyHours={monthlyHoursByProject[project.id] ?? null}
             />
           );
         })}

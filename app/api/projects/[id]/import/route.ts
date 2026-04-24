@@ -88,6 +88,9 @@ async function insertOpenAir(
     booked_hours: t.bookedHours ?? null,
     period_date: toDateStr(t.periodDate),
     import_log_id: logId,
+    team: t.team ?? null,
+    ticket_ref: t.ticketRef ?? null,
+    task_category: t.taskCategory ?? null,
   }));
 
   for (let i = 0; i < timesheetRows.length; i += BATCH_SIZE) {

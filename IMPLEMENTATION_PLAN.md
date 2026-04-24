@@ -578,7 +578,8 @@ Phase 0 (Setup)
                                     └── Phase 5 (Dashboard)
                                             └── Phase 6 (Settings)
                                                     └── Phase 7 (Doku & QS)
-                                                            └── Phase 8 (Docker)
+                                                            └── Phase 8 (FEAT-008: Team & Zeit)
+                                                                    └── Phase 9 (Docker)
 ```
 
 ## Zeitschätzung (Claude Code Sessions)
@@ -593,8 +594,12 @@ Phase 0 (Setup)
 | 5 – Dashboard | Mittel | 3 |
 | 6 – Settings | Gering | 1 |
 | 7 – Doku & QS | Mittel | 2 |
-| 8 – Docker & Deployment | Gering | 2 |
-| **Gesamt** | | **~20 Sessions** |
+| 8.1 – FEAT-008: Data layer | Mittel | 1 |
+| 8.2 – FEAT-008: Berechnungslogik | Mittel | 1 |
+| 8.3 – FEAT-008: Dashboard-Karte | Gering | 1 |
+| 8.4 – FEAT-008: Time-Analysis-Seite | Hoch | 3 |
+| 9 – Docker & Deployment | Gering | 2 |
+| **Gesamt** | | **~26 Sessions** |
 
 ---
 

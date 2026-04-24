@@ -45,6 +45,10 @@ export interface OATimesheet {
   plannedHours?: number;
   bookedHours?: number;
   periodDate?: Date;
+  // FEAT-008
+  team?: string;
+  ticketRef?: string;
+  taskCategory?: string;
 }
 
 export interface OAMilestone {
@@ -128,6 +132,29 @@ export interface StabilityResult {
   status: StabilityStatus;
   score: number;
   dimensions: DimensionResult[];
+}
+
+// --- Time analysis (FEAT-008) ---
+
+export interface HoursByTeam {
+  team: string;
+  hours: number;
+}
+
+export interface HoursByCategory {
+  category: string;
+  hours: number;
+}
+
+export interface EpicHoursEntry {
+  ref: string;
+  hours: number;
+  storyPoints: number | null;
+}
+
+export interface BugCostResult {
+  totalHours: number;
+  hoursPerSP: number | null;
 }
 
 // --- Project thresholds ---

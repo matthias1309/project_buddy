@@ -16,6 +16,10 @@ vi.mock("@/components/dashboard/create-project-dialog", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 import { createClient } from "@/lib/supabase/server";
 import ProjectsPage from "@/app/(dashboard)/page";
 

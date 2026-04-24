@@ -122,6 +122,9 @@ export interface Database {
           booked_hours: number | null;
           period_date: string | null;
           import_log_id: string | null;
+          team: string | null;
+          ticket_ref: string | null;
+          task_category: string | null;
         };
         Insert: Omit<
           Database["public"]["Tables"]["oa_timesheets"]["Row"],
