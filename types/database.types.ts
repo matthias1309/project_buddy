@@ -4,232 +4,569 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-export interface Database {
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      projects: {
-        Row: {
-          id: string;
-          owner_id: string;
-          name: string;
-          project_number: string | null;
-          description: string | null;
-          client: string | null;
-          start_date: string;
-          end_date: string;
-          total_budget_eur: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["projects"]["Row"],
-          "id" | "created_at" | "updated_at"
-        >;
-        Update: Partial<Database["public"]["Tables"]["projects"]["Insert"]>;
-        Relationships: [];
-      };
       import_logs: {
         Row: {
-          id: string;
-          project_id: string;
-          source: "jira" | "openair";
-          filename: string;
-          status: "success" | "error" | "partial";
-          records_imported: number | null;
-          error_message: string | null;
-          imported_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["import_logs"]["Row"],
-          "id" | "imported_at"
-        >;
-        Update: Partial<Database["public"]["Tables"]["import_logs"]["Insert"]>;
+          error_message: string | null
+          filename: string
+          id: string
+          imported_at: string
+          project_id: string
+          records_imported: number | null
+          source: string
+          status: string
+        }
+        Insert: {
+          error_message?: string | null
+          filename: string
+          id?: string
+          imported_at?: string
+          project_id: string
+          records_imported?: number | null
+          source: string
+          status: string
+        }
+        Update: {
+          error_message?: string | null
+          filename?: string
+          id?: string
+          imported_at?: string
+          project_id?: string
+          records_imported?: number | null
+          source?: string
+          status?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "import_logs_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
+            foreignKeyName: "import_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       jira_issues: {
         Row: {
-          id: string;
-          project_id: string;
-          issue_key: string;
-          summary: string | null;
-          issue_type: string | null;
-          status: string | null;
-          story_points: number | null;
-          sprint: string | null;
-          epic: string | null;
-          assignee: string | null;
-          created_date: string | null;
-          resolved_date: string | null;
-          import_log_id: string | null;
-        };
-        Insert: Omit<Database["public"]["Tables"]["jira_issues"]["Row"], "id">;
-        Update: Partial<Database["public"]["Tables"]["jira_issues"]["Insert"]>;
+          assignee: string | null
+          created_date: string | null
+          epic: string | null
+          id: string
+          import_log_id: string | null
+          issue_key: string
+          issue_type: string | null
+          project_id: string
+          resolved_date: string | null
+          sprint: string | null
+          status: string | null
+          story_points: number | null
+          summary: string | null
+        }
+        Insert: {
+          assignee?: string | null
+          created_date?: string | null
+          epic?: string | null
+          id?: string
+          import_log_id?: string | null
+          issue_key: string
+          issue_type?: string | null
+          project_id: string
+          resolved_date?: string | null
+          sprint?: string | null
+          status?: string | null
+          story_points?: number | null
+          summary?: string | null
+        }
+        Update: {
+          assignee?: string | null
+          created_date?: string | null
+          epic?: string | null
+          id?: string
+          import_log_id?: string | null
+          issue_key?: string
+          issue_type?: string | null
+          project_id?: string
+          resolved_date?: string | null
+          sprint?: string | null
+          status?: string | null
+          story_points?: number | null
+          summary?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "jira_issues_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
+            foreignKeyName: "jira_issues_import_log_id_fkey"
+            columns: ["import_log_id"]
+            isOneToOne: false
+            referencedRelation: "import_logs"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+          {
+            foreignKeyName: "jira_issues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jira_sprints: {
         Row: {
-          id: string;
-          project_id: string;
-          sprint_name: string;
-          state: string | null;
-          start_date: string | null;
-          end_date: string | null;
-          completed_points: number | null;
-          planned_points: number | null;
-          import_log_id: string | null;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["jira_sprints"]["Row"],
-          "id"
-        >;
-        Update: Partial<Database["public"]["Tables"]["jira_sprints"]["Insert"]>;
+          completed_points: number | null
+          end_date: string | null
+          id: string
+          import_log_id: string | null
+          planned_points: number | null
+          project_id: string
+          sprint_name: string
+          start_date: string | null
+          state: string | null
+        }
+        Insert: {
+          completed_points?: number | null
+          end_date?: string | null
+          id?: string
+          import_log_id?: string | null
+          planned_points?: number | null
+          project_id: string
+          sprint_name: string
+          start_date?: string | null
+          state?: string | null
+        }
+        Update: {
+          completed_points?: number | null
+          end_date?: string | null
+          id?: string
+          import_log_id?: string | null
+          planned_points?: number | null
+          project_id?: string
+          sprint_name?: string
+          start_date?: string | null
+          state?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "jira_sprints_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
+            foreignKeyName: "jira_sprints_import_log_id_fkey"
+            columns: ["import_log_id"]
+            isOneToOne: false
+            referencedRelation: "import_logs"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-      oa_timesheets: {
-        Row: {
-          id: string;
-          project_id: string;
-          employee_name: string | null;
-          role: string | null;
-          phase: string | null;
-          planned_hours: number | null;
-          booked_hours: number | null;
-          period_date: string | null;
-          import_log_id: string | null;
-          team: string | null;
-          ticket_ref: string | null;
-          task_category: string | null;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["oa_timesheets"]["Row"],
-          "id"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["oa_timesheets"]["Insert"]
-        >;
-        Relationships: [
           {
-            foreignKeyName: "oa_timesheets_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
+            foreignKeyName: "jira_sprints_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-      oa_milestones: {
-        Row: {
-          id: string;
-          project_id: string;
-          name: string;
-          planned_date: string | null;
-          actual_date: string | null;
-          status: string | null;
-          import_log_id: string | null;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["oa_milestones"]["Row"],
-          "id"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["oa_milestones"]["Insert"]
-        >;
-        Relationships: [
-          {
-            foreignKeyName: "oa_milestones_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
+        ]
+      }
       oa_budget_entries: {
         Row: {
-          id: string;
-          project_id: string;
-          category: string | null;
-          planned_eur: number | null;
-          actual_eur: number | null;
-          period_date: string | null;
-          import_log_id: string | null;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["oa_budget_entries"]["Row"],
-          "id"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["oa_budget_entries"]["Insert"]
-        >;
+          actual_eur: number | null
+          category: string | null
+          id: string
+          import_log_id: string | null
+          period_date: string | null
+          planned_eur: number | null
+          project_id: string
+        }
+        Insert: {
+          actual_eur?: number | null
+          category?: string | null
+          id?: string
+          import_log_id?: string | null
+          period_date?: string | null
+          planned_eur?: number | null
+          project_id: string
+        }
+        Update: {
+          actual_eur?: number | null
+          category?: string | null
+          id?: string
+          import_log_id?: string | null
+          period_date?: string | null
+          planned_eur?: number | null
+          project_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "oa_budget_entries_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
+            foreignKeyName: "oa_budget_entries_import_log_id_fkey"
+            columns: ["import_log_id"]
+            isOneToOne: false
+            referencedRelation: "import_logs"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+          {
+            foreignKeyName: "oa_budget_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oa_milestones: {
+        Row: {
+          actual_date: string | null
+          id: string
+          import_log_id: string | null
+          name: string
+          planned_date: string | null
+          project_id: string
+          status: string | null
+        }
+        Insert: {
+          actual_date?: string | null
+          id?: string
+          import_log_id?: string | null
+          name: string
+          planned_date?: string | null
+          project_id: string
+          status?: string | null
+        }
+        Update: {
+          actual_date?: string | null
+          id?: string
+          import_log_id?: string | null
+          name?: string
+          planned_date?: string | null
+          project_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oa_milestones_import_log_id_fkey"
+            columns: ["import_log_id"]
+            isOneToOne: false
+            referencedRelation: "import_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oa_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oa_timesheets: {
+        Row: {
+          booked_hours: number | null
+          employee_name: string | null
+          id: string
+          import_log_id: string | null
+          period_date: string | null
+          phase: string | null
+          planned_hours: number | null
+          project_id: string
+          role: string | null
+          task_category: string | null
+          team: string | null
+          ticket_ref: string | null
+        }
+        Insert: {
+          booked_hours?: number | null
+          employee_name?: string | null
+          id?: string
+          import_log_id?: string | null
+          period_date?: string | null
+          phase?: string | null
+          planned_hours?: number | null
+          project_id: string
+          role?: string | null
+          task_category?: string | null
+          team?: string | null
+          ticket_ref?: string | null
+        }
+        Update: {
+          booked_hours?: number | null
+          employee_name?: string | null
+          id?: string
+          import_log_id?: string | null
+          period_date?: string | null
+          phase?: string | null
+          planned_hours?: number | null
+          project_id?: string
+          role?: string | null
+          task_category?: string | null
+          team?: string | null
+          ticket_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oa_timesheets_import_log_id_fkey"
+            columns: ["import_log_id"]
+            isOneToOne: false
+            referencedRelation: "import_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oa_timesheets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_thresholds: {
         Row: {
-          id: string;
-          project_id: string;
-          budget_yellow_pct: number;
-          budget_red_pct: number;
-          schedule_yellow_days: number;
-          schedule_red_days: number;
-          resource_yellow_pct: number;
-          resource_red_pct: number;
-          scope_yellow_pct: number;
-          scope_red_pct: number;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["project_thresholds"]["Row"],
-          "id"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["project_thresholds"]["Insert"]
-        >;
+          budget_red_pct: number
+          budget_yellow_pct: number
+          id: string
+          project_id: string
+          resource_red_pct: number
+          resource_yellow_pct: number
+          schedule_red_days: number
+          schedule_yellow_days: number
+          scope_red_pct: number
+          scope_yellow_pct: number
+        }
+        Insert: {
+          budget_red_pct?: number
+          budget_yellow_pct?: number
+          id?: string
+          project_id: string
+          resource_red_pct?: number
+          resource_yellow_pct?: number
+          schedule_red_days?: number
+          schedule_yellow_days?: number
+          scope_red_pct?: number
+          scope_yellow_pct?: number
+        }
+        Update: {
+          budget_red_pct?: number
+          budget_yellow_pct?: number
+          id?: string
+          project_id?: string
+          resource_red_pct?: number
+          resource_yellow_pct?: number
+          schedule_red_days?: number
+          schedule_yellow_days?: number
+          scope_red_pct?: number
+          scope_yellow_pct?: number
+        }
         Relationships: [
           {
-            foreignKeyName: "project_thresholds_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: true;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
+            foreignKeyName: "project_thresholds_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-  };
+        ]
+      }
+      projects: {
+        Row: {
+          client: string | null
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          name: string
+          owner_id: string
+          project_number: string | null
+          start_date: string
+          total_budget_eur: number
+          updated_at: string
+        }
+        Insert: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          name: string
+          owner_id: string
+          project_number?: string | null
+          start_date: string
+          total_budget_eur: number
+          updated_at?: string
+        }
+        Update: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          project_number?: string | null
+          start_date?: string
+          total_budget_eur?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
+

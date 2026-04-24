@@ -48,12 +48,14 @@ export function ProjectCard({
 
   return (
     <Card
-      className="h-full cursor-pointer transition-shadow hover:shadow-md"
+      className="group h-full cursor-pointer transition-shadow hover:shadow-md"
       onClick={() => router.push(`/projects/${project.id}`)}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base leading-snug">{project.name}</CardTitle>
+          <CardTitle className="text-base leading-snug group-hover:underline hover:underline">
+            {project.name}
+          </CardTitle>
           <StabilityBadge status={stabilityStatus} />
         </div>
         {project.project_number && (
