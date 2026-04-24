@@ -6,7 +6,7 @@ import { ERRORS } from "@/lib/errors";
 import type { JiraParseResult, OpenAirParseResult } from "@/types/domain.types";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 2000;
 
 function errJson(
   key: keyof typeof ERRORS,

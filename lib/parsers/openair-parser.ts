@@ -134,9 +134,13 @@ function parseTimesheetRows(
     const row = rows[i] as unknown[];
     if (isEmptyRow(row)) continue;
 
-    // Stop if we hit another header block
-    const rowHeaders = row.map((h) => cellString(h));
-    if (detectBlockType(rowHeaders) !== null && i !== startRow + 1) break;
+    // Stop if we hit another header block — only relevant for old-format multi-block sheets.
+    // New-format files are single-block, so skip this check to avoid false-positives on
+    // data values like task names ("Steuerung" contains "eur", employee names, etc.).
+    if (!isNewFormat) {
+      const rowHeaders = row.map((h) => cellString(h));
+      if (detectBlockType(rowHeaders) !== null && i !== startRow + 1) break;
+    }
 
     // FEAT-008: status filter — only submitted/approved when Status column present
     if (colBookingStatus !== -1) {
