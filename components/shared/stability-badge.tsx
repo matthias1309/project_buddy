@@ -1,4 +1,6 @@
-type StabilityStatus = "green" | "yellow" | "red";
+import type { StabilityStatus } from "@/types/domain.types";
+
+export type { StabilityStatus };
 
 interface StabilityBadgeProps {
   status: StabilityStatus;
@@ -24,6 +26,11 @@ const config: Record<
     label: "Critical",
     badgeClass: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20",
     dotClass: "bg-red-500",
+  },
+  none: {
+    label: "No Data",
+    badgeClass: "bg-gray-100 text-gray-500 ring-1 ring-inset ring-gray-400/20",
+    dotClass: "bg-gray-400",
   },
 };
 

@@ -113,7 +113,7 @@ export interface ScopeKPIs {
 
 // --- Stability ---
 
-export type StabilityStatus = "green" | "yellow" | "red";
+export type StabilityStatus = "green" | "yellow" | "red" | "none";
 
 export type StabilityDimension = "budget" | "schedule" | "resource" | "scope";
 
