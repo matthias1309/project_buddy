@@ -74,7 +74,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
         .eq("id", params.id)
         .eq("owner_id", user.id)
         .single(),
-      supabase.from("oa_timesheets").select("*").eq("project_id", params.id),
+      supabase.from("oa_timesheets").select("*").eq("project_id", params.id).limit(50000),
       supabase.from("jira_issues").select("*").eq("project_id", params.id),
     ]);
 

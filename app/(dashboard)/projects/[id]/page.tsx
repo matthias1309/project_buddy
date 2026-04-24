@@ -68,7 +68,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
       .single(),
     supabase.from("jira_issues").select("*").eq("project_id", params.id),
     supabase.from("jira_sprints").select("*").eq("project_id", params.id),
-    supabase.from("oa_timesheets").select("*").eq("project_id", params.id),
+    supabase.from("oa_timesheets").select("*").eq("project_id", params.id).limit(50000),
     supabase.from("oa_milestones").select("*").eq("project_id", params.id),
     supabase.from("oa_budget_entries").select("*").eq("project_id", params.id),
     supabase

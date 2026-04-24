@@ -98,7 +98,7 @@ export default async function ProjectsPage() {
       .order("imported_at", { ascending: false }),
     supabase.from("jira_issues").select("*").in("project_id", projectIds),
     supabase.from("jira_sprints").select("*").in("project_id", projectIds),
-    supabase.from("oa_timesheets").select("*").in("project_id", projectIds),
+    supabase.from("oa_timesheets").select("*").in("project_id", projectIds).limit(50000),
     supabase.from("oa_milestones").select("*").in("project_id", projectIds),
     supabase.from("oa_budget_entries").select("*").in("project_id", projectIds),
     supabase
