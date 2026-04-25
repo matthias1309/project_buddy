@@ -48,6 +48,9 @@ function queryChain(data: unknown) {
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
   chain.in = vi.fn().mockReturnValue(chain);
+  chain.range = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.single = vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] ?? null : data, error: null });
   chain.then = promise.then.bind(promise);
   chain.catch = promise.catch.bind(promise);
   chain.finally = promise.finally.bind(promise);
@@ -63,8 +66,10 @@ function setupClient({
       getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
     },
     from: vi.fn().mockImplementation((table: string) => {
-      const data = table === "projects" ? projects : importLogs;
-      return queryChain(data);
+      if (table === "projects") return queryChain(projects);
+      if (table === "oa_timesheets") return queryChain([]);
+      if (table === "import_logs") return queryChain(importLogs);
+      return queryChain([]);
     }),
   } as unknown as ReturnType<typeof createClient>);
 }
