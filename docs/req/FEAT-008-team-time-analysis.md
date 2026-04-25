@@ -26,7 +26,15 @@ Only entries with `Status = submitted` or `Status = approved` count as billable/
 ```gherkin
 Given an OpenAir Excel row with Project = "Acme Rollout - Team Alpha"
 When parseOpenAirExcel() processes the row
-Then oa_timesheets.team = "Alpha"
+Then oa_timesheets.team = "Team Alpha"  # includes "Team " prefix
+
+Given an OpenAir Excel row with Project = "2501P146-PI26 - Ost - ODP Dev - Team Panda"
+When parseOpenAirExcel() processes the row
+Then oa_timesheets.team = "Team Panda"  # works with multi-segment project names
+
+Given an OpenAir Excel row where the separator is an en-dash (–) instead of a hyphen (-)
+When parseOpenAirExcel() processes the row
+Then the team is still extracted correctly
 
 Given a Project value without a "- Team X" suffix
 When parseOpenAirExcel() processes the row
@@ -143,9 +151,9 @@ Then it shows 0 h and a "No bug bookings" note
 
 ### Parser changes (`lib/parsers/openair-parser.ts`)
 
-- Extract `team`: apply regex `/- Team (.+)$/` on the `Project` column value. Group 1 = team name. If no match, set `null`.
+- Extract `team`: apply regex `/[-–]\s*(Team\s+.+)$/i` on the `Project` column value. The captured group includes the `"Team "` prefix (e.g. `"Team Panda"`). Handles both ASCII hyphen and en-dash as separators. If no match, set `null`.
 - Extract `ticket_ref`: apply regex `/\b([A-Z]+-\d+)\b/` on the `Notes` column value. First match = ticket ref. If no match, set `null`.
-- Map `task_category` directly from the `Task` column value. Accepted values: `Regular Meeting`, `Development`, `Steuerung`, `Organization`. Any other value → set `null` and emit a warning.
+- Map `task_category` from the `Task` column using **`startsWith` matching** (case-insensitive). A task value like `"Organization (PO & ScM)"` matches `"Organization"` and is stored as the canonical name. Any value that matches no known category → set `null` and emit a warning. Accepted canonical values: `Regular Meeting`, `Development`, `Steuerung`, `Organization`.
 - Filter rows: only rows where `Status` is `"submitted"` or `"approved"` (case-insensitive) are written to the database. Rejected/open rows are counted in the import log as `skipped_rows`.
 
 ### Database migration
