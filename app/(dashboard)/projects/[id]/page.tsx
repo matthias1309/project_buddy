@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllTimesheets } from "@/lib/supabase/paginate";
 import { calcBudgetKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcScheduleKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcResourceKPIs } from "@/lib/calculations/kpi-calculations";
@@ -55,7 +56,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
     { data: project },
     { data: rawIssues },
     { data: rawSprints },
-    { data: rawTimesheets },
+    rawTimesheets,
     { data: rawMilestones },
     { data: rawBudget },
     { data: rawThresholds },
@@ -68,7 +69,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
       .single(),
     supabase.from("jira_issues").select("*").eq("project_id", params.id),
     supabase.from("jira_sprints").select("*").eq("project_id", params.id),
-    supabase.from("oa_timesheets").select("*").eq("project_id", params.id).limit(50000),
+    fetchAllTimesheets(supabase, params.id),
     supabase.from("oa_milestones").select("*").eq("project_id", params.id),
     supabase.from("oa_budget_entries").select("*").eq("project_id", params.id),
     supabase
@@ -82,7 +83,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
 
   const hasData =
     (rawIssues?.length ?? 0) +
-      (rawTimesheets?.length ?? 0) +
+      rawTimesheets.length +
       (rawMilestones?.length ?? 0) +
       (rawBudget?.length ?? 0) >
     0;
@@ -110,7 +111,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
     plannedPoints: r.planned_points ?? undefined,
   }));
 
-  const timesheets: OATimesheet[] = (rawTimesheets ?? []).map((r) => ({
+  const timesheets: OATimesheet[] = rawTimesheets.map((r) => ({
     employeeName: r.employee_name ?? undefined,
     role: r.role ?? undefined,
     phase: r.phase ?? undefined,

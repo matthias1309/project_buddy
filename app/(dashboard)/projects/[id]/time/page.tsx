@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllTimesheets } from "@/lib/supabase/paginate";
 import {
   calcHoursByTeam,
   calcHoursByCategory,
@@ -66,7 +67,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: project }, { data: rawTimesheets }, { data: rawIssues }] =
+  const [{ data: project }, rawTimesheets, { data: rawIssues }] =
     await Promise.all([
       supabase
         .from("projects")
@@ -74,7 +75,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
         .eq("id", params.id)
         .eq("owner_id", user.id)
         .single(),
-      supabase.from("oa_timesheets").select("*").eq("project_id", params.id).limit(50000),
+      fetchAllTimesheets(supabase, params.id),
       supabase.from("jira_issues").select("*").eq("project_id", params.id),
     ]);
 
@@ -85,7 +86,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
   const selectedTeam =
     typeof searchParams.team === "string" ? searchParams.team : "";
 
-  const allTimesheets: OATimesheet[] = (rawTimesheets ?? []).map((r) => ({
+  const allTimesheets: OATimesheet[] = rawTimesheets.map((r) => ({
     employeeName: r.employee_name ?? undefined,
     role: r.role ?? undefined,
     phase: r.phase ?? undefined,

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllTimesheetsForProjects } from "@/lib/supabase/paginate";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog";
 import { calcBudgetKPIs } from "@/lib/calculations/kpi-calculations";
@@ -86,7 +87,7 @@ export default async function ProjectsPage() {
     { data: importLogs },
     { data: rawIssues },
     { data: rawSprints },
-    { data: rawTimesheets },
+    rawTimesheets,
     { data: rawMilestones },
     { data: rawBudget },
     { data: rawThresholds },
@@ -98,7 +99,7 @@ export default async function ProjectsPage() {
       .order("imported_at", { ascending: false }),
     supabase.from("jira_issues").select("*").in("project_id", projectIds),
     supabase.from("jira_sprints").select("*").in("project_id", projectIds),
-    supabase.from("oa_timesheets").select("*").in("project_id", projectIds).limit(50000),
+    fetchAllTimesheetsForProjects(supabase, projectIds),
     supabase.from("oa_milestones").select("*").in("project_id", projectIds),
     supabase.from("oa_budget_entries").select("*").in("project_id", projectIds),
     supabase
@@ -118,7 +119,7 @@ export default async function ProjectsPage() {
   // Group all DB rows by project_id
   const issuesByProject = groupBy(rawIssues ?? [], "project_id");
   const sprintsByProject = groupBy(rawSprints ?? [], "project_id");
-  const timesheetsByProject = groupBy(rawTimesheets ?? [], "project_id");
+  const timesheetsByProject = groupBy(rawTimesheets, "project_id");
 
   // Current-month hours per project (null = no OA import at all → show "—")
   const now = new Date();
