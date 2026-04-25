@@ -42,17 +42,20 @@ graph TD
     page.tsx                      Project dashboard (Server Component)
     import/page.tsx               Import UI (client components)
     settings/page.tsx             Threshold configuration (Server Component)
+    time/page.tsx                 Time Analysis page (Server Component)
 
 /components
   /ui                             shadcn/ui base components (do not edit)
   /dashboard
-    project-card.tsx              Single project card with stability badge
+    project-card.tsx              Project card: stability badge + monthly hours row
     create-project-dialog.tsx     Dialog + form for new projects
     budget-card.tsx               Budget KPI card with progress bar
     schedule-card.tsx             Schedule KPI card with milestone list
     resource-card.tsx             Resource utilisation bar chart (Recharts)
     scope-card.tsx                Scope KPI card with velocity mini-chart
     thresholds-form.tsx           Threshold settings form with reset dialog
+    time-by-team-chart.tsx        Horizontal bar chart: hours per team (Recharts)
+    time-by-category-chart.tsx    Horizontal bar chart: hours per task category (Recharts)
   /import
     upload-zone.tsx               Drag-and-drop file upload zone
     import-log-list.tsx           Recent import history list
@@ -81,7 +84,7 @@ graph TD
 3. Check file size (max 10 MB) and MIME type
 4. Forward buffer to parser (`jiraParser` or `openAirParser`)
 5. Delete existing rows for this project (full replace, no append)
-6. Batch-insert parsed records (max 500 rows per insert)
+6. Batch-insert parsed records (max 2000 rows per insert)
 7. Write `import_log` entry
 8. Return `{ success, recordsImported, errors, warnings }`
 
@@ -98,6 +101,12 @@ graph TD
   kpi-calculations.ts             calcBudgetKPIs, calcScheduleKPIs,
                                   calcResourceKPIs, calcScopeKPIs
   stability-index.ts              calcStabilityIndex → StabilityResult
+  time-calculations.ts            calcHoursByTeam, calcHoursByCategory,
+                                  calcEpicHours, calcBugCost
+
+/lib/supabase
+  paginate.ts                     fetchAllTimesheets, fetchAllTimesheetsForProjects
+                                  — paginated fetch that bypasses Supabase max_rows cap
 
 /lib/validations
   auth.schema.ts                  Zod schema for login
@@ -112,8 +121,21 @@ graph TD
 **Parser design:**  
 Both parsers accept a `Buffer`, use SheetJS to read the workbook, map column headers case-insensitively to domain fields, skip empty rows, and collect parse errors by row number. Unknown columns are silently ignored.
 
+The OpenAir parser supports two export formats:
+- **Old format**: `Mitarbeiter / Rolle / Phase / Geplante Stunden / Gebuchte Stunden / Datum` — multi-block sheets with separate timesheet, budget, and milestone sections
+- **New format**: `Date / Client / Project / Task / Hours / Notes / Status` — single-block timesheet-only export
+
+New-format detection (`colProject !== -1`) controls:
+- Team extraction: regex `/[-–]\s*(Team\s+.+)$/i` on `Project` → stores `"Team Panda"` (includes prefix)
+- Ticket ref extraction: regex `/\b([A-Z]+-\d+)\b/` on `Notes`
+- Task category: `startsWith` match against `[Regular Meeting, Development, Steuerung, Organization]`; stores canonical name
+- Status filter: only `submitted`/`approved` rows are stored; others are counted as skipped
+- Budget warning suppressed when no budget sheet is present (new-format exports are timesheet-only)
+
 **Calculation design:**  
-All four KPI functions are pure — they accept domain arrays and return a typed result object. `calcStabilityIndex` composes the four KPI results and a `ProjectThresholds` object into a single `StabilityResult` with per-dimension status and an overall score (0–100).
+All KPI functions are pure — they accept domain arrays and return a typed result object. `calcStabilityIndex` composes the four KPI results and a `ProjectThresholds` object into a single `StabilityResult` with per-dimension status and an overall score (0–100).
+
+`time-calculations.ts` contains four additional pure functions for the Time Analysis page: hours grouped by team, by category, by Jira ticket reference, and bug cost (hours on Bug-type issues relative to story points).
 
 ---
 

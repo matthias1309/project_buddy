@@ -55,7 +55,8 @@ sequenceDiagram
     RSC->>DB: getUser() — verify session
     DB-->>RSC: user or null
     Note over RSC: Redirect to /login if no session
-    RSC->>DB: SELECT project, jira_issues, jira_sprints,<br/>oa_timesheets, oa_milestones,<br/>oa_budget_entries, project_thresholds<br/>(parallel Promise.all)
+    RSC->>DB: SELECT project, jira_issues, jira_sprints,<br/>oa_milestones, oa_budget_entries,<br/>project_thresholds (parallel Promise.all)
+    RSC->>DB: fetchAllTimesheets() — paginated (see ADR-005)
     DB-->>RSC: All rows (RLS enforced)
     RSC->>Calc: calcBudgetKPIs(budgetEntries, totalBudget)
     RSC->>Calc: calcScheduleKPIs(milestones, today)
@@ -75,7 +76,52 @@ sequenceDiagram
 
 ---
 
-## Scenario 3 — Threshold Update
+## Scenario 3 — Time Analysis Page Load
+
+A project manager navigates to the Time Analysis page and applies a team filter. All data fetching and computation happens server-side; the filter is a plain HTML GET form (no client-side requests).
+
+```mermaid
+sequenceDiagram
+    actor PM as Project Manager
+    participant Browser
+    participant RSC as TimeAnalysisPage<br/>(React Server Component)
+    participant Paginate as paginate.ts
+    participant DB as Supabase (PostgreSQL)
+    participant Calc as time-calculations.ts
+
+    PM->>Browser: Navigate to /projects/[id]/time?period=2026-01&team=Team+Panda
+    Browser->>RSC: HTTP GET (SSR request)
+    RSC->>DB: getUser() — verify session
+    RSC->>DB: SELECT project WHERE id=? AND owner_id=?
+    DB-->>RSC: project row
+    RSC->>Paginate: fetchAllTimesheets(supabase, projectId)
+    loop until all pages fetched
+        Paginate->>DB: SELECT * FROM oa_timesheets<br/>WHERE project_id=?<br/>RANGE [0..999], [1000..1999], …
+        DB-->>Paginate: up to 1000 rows per page
+    end
+    Paginate-->>RSC: all timesheet rows (e.g. 2700 rows)
+    RSC->>DB: SELECT * FROM jira_issues WHERE project_id=?
+    DB-->>RSC: jira_issues rows
+    RSC->>RSC: filterByPeriod(timesheets, "2026-01")
+    RSC->>RSC: filter by team = "Team Panda"
+    RSC->>Calc: calcHoursByTeam(filtered)
+    RSC->>Calc: calcHoursByCategory(filtered)
+    RSC->>Calc: calcEpicHours(filtered, issues)
+    RSC->>Calc: calcBugCost(filtered, issues)
+    Calc-->>RSC: chart data + table data
+    RSC->>Browser: Full HTML (4 sections + filter form)
+    Browser->>PM: Rendered page
+```
+
+**Key invariants:**
+- `fetchAllTimesheets` paginates automatically (1000 rows/page) to bypass Supabase's `max_rows` server cap — results are identical regardless of the row insertion order in the database (see ADR-005)
+- The filter form uses GET parameters — the URL is bookmarkable and the page works without JavaScript
+- Period filter supports both `YYYY-MM` (calendar month) and `7d` (rolling 7 days)
+- All four calculation functions receive only the already-filtered subset; no data from other periods or teams reaches the chart layer
+
+---
+
+## Scenario 4 — Threshold Update
 
 A project manager saves new threshold values on the settings page.
 
