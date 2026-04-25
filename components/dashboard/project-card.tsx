@@ -14,7 +14,6 @@ interface ProjectCardProps {
   stabilityStatus: StabilityStatus;
   criticalDimension: StabilityDimension | null;
   hint: string | null;
-  monthlyHours: number | null;
 }
 
 const dimensionLabel: Record<StabilityDimension, string> = {
@@ -32,17 +31,12 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function formatMonth(date: Date): string {
-  return date.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-}
-
 export function ProjectCard({
   project,
   lastImportedAt,
   stabilityStatus,
   criticalDimension,
   hint,
-  monthlyHours,
 }: ProjectCardProps) {
   const router = useRouter();
 
@@ -76,20 +70,6 @@ export function ProjectCard({
             ? `Last import: ${formatDate(lastImportedAt)}`
             : "No data imported yet"}
         </p>
-        <div
-          className="flex items-center justify-between rounded-sm border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/projects/${project.id}/time`);
-          }}
-        >
-          <span>
-            Time · {formatMonth(new Date())}
-          </span>
-          <span className="font-medium">
-            {monthlyHours !== null ? `${monthlyHours % 1 === 0 ? monthlyHours : monthlyHours.toFixed(1)} h` : "—"}
-          </span>
-        </div>
       </CardContent>
     </Card>
   );

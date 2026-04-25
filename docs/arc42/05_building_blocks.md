@@ -47,12 +47,13 @@ graph TD
 /components
   /ui                             shadcn/ui base components (do not edit)
   /dashboard
-    project-card.tsx              Project card: stability badge + monthly hours row
+    project-card.tsx              Project card: stability badge + last import date
     create-project-dialog.tsx     Dialog + form for new projects
     budget-card.tsx               Budget KPI card with progress bar
     schedule-card.tsx             Schedule KPI card with milestone list
     resource-card.tsx             Resource utilisation bar chart (Recharts)
     scope-card.tsx                Scope KPI card with velocity mini-chart
+    time-analysis-card.tsx        Time Analysis tile: last OA import date + current-month hours; links to /time
     thresholds-form.tsx           Threshold settings form with reset dialog
     time-by-team-chart.tsx        Horizontal bar chart: hours per team (Recharts)
     time-by-category-chart.tsx    Horizontal bar chart: hours per task category (Recharts)
@@ -135,7 +136,7 @@ New-format detection (`colProject !== -1`) controls:
 **Calculation design:**  
 All KPI functions are pure — they accept domain arrays and return a typed result object. `calcStabilityIndex` composes the four KPI results and a `ProjectThresholds` object into a single `StabilityResult` with per-dimension status and an overall score (0–100).
 
-`time-calculations.ts` contains four additional pure functions for the Time Analysis page: hours grouped by team, by category, by Jira ticket reference, and bug cost (hours on Bug-type issues relative to story points).
+`time-calculations.ts` contains four additional pure functions for the Time Analysis page: hours grouped by team, by category, by Jira ticket reference, and bug cost (hours on Bug-type issues relative to story points). `calcEpicHours` returns `EpicHoursEntry` objects which include `issueType` and `summaryPreview` (first 25 characters of the Jira summary, truncated with `…`) alongside hours and story points.
 
 ---
 

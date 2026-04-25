@@ -28,7 +28,6 @@ const defaultStability = {
   stabilityStatus: "none" as const,
   criticalDimension: null,
   hint: null,
-  monthlyHours: null,
 };
 
 describe("ProjectCard — FEAT-002 project card content", () => {
@@ -66,7 +65,6 @@ describe("ProjectCard — FEAT-002 project card content", () => {
         stabilityStatus="green"
         criticalDimension={null}
         hint={null}
-        monthlyHours={null}
       />,
     );
     expect(screen.getByText("Stable")).toBeInTheDocument();
@@ -80,7 +78,6 @@ describe("ProjectCard — FEAT-002 project card content", () => {
         stabilityStatus="red"
         criticalDimension="budget"
         hint="+28.5%"
-        monthlyHours={null}
       />,
     );
     expect(screen.getByText(/Budget/)).toBeInTheDocument();
@@ -116,48 +113,3 @@ describe("ProjectCard — FEAT-002 navigation", () => {
   });
 });
 
-describe("ProjectCard — FEAT-008 time row", () => {
-  it('shows "—" when monthlyHours is null (no OA import)', () => {
-    render(<ProjectCard project={baseProject} lastImportedAt={null} {...defaultStability} />);
-    expect(screen.getByText("—")).toBeInTheDocument();
-  });
-
-  it("shows formatted hours when monthlyHours is a whole number", () => {
-    render(
-      <ProjectCard project={baseProject} lastImportedAt={null} {...defaultStability} monthlyHours={42} />,
-    );
-    expect(screen.getByText("42 h")).toBeInTheDocument();
-  });
-
-  it("shows one decimal place for fractional hours", () => {
-    render(
-      <ProjectCard project={baseProject} lastImportedAt={null} {...defaultStability} monthlyHours={7.5} />,
-    );
-    expect(screen.getByText("7.5 h")).toBeInTheDocument();
-  });
-
-  it("shows 0 h when monthlyHours is 0 (import exists but no hours this month)", () => {
-    render(
-      <ProjectCard project={baseProject} lastImportedAt={null} {...defaultStability} monthlyHours={0} />,
-    );
-    expect(screen.getByText("0 h")).toBeInTheDocument();
-  });
-
-  it("navigates to the time analysis page when the time row is clicked", () => {
-    mockPush.mockClear();
-    render(
-      <ProjectCard project={baseProject} lastImportedAt={null} {...defaultStability} monthlyHours={10} />,
-    );
-    fireEvent.click(screen.getByText("10 h"));
-    expect(mockPush).toHaveBeenCalledWith("/projects/proj-1/time");
-  });
-
-  it("does not navigate to the project page when the time row is clicked", () => {
-    mockPush.mockClear();
-    render(
-      <ProjectCard project={baseProject} lastImportedAt={null} {...defaultStability} monthlyHours={10} />,
-    );
-    fireEvent.click(screen.getByText("10 h"));
-    expect(mockPush).not.toHaveBeenCalledWith("/projects/proj-1");
-  });
-});

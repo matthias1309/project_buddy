@@ -55,7 +55,7 @@ sequenceDiagram
     RSC->>DB: getUser() — verify session
     DB-->>RSC: user or null
     Note over RSC: Redirect to /login if no session
-    RSC->>DB: SELECT project, jira_issues, jira_sprints,<br/>oa_milestones, oa_budget_entries,<br/>project_thresholds (parallel Promise.all)
+    RSC->>DB: SELECT project, jira_issues, jira_sprints,<br/>oa_milestones, oa_budget_entries,<br/>project_thresholds,<br/>import_logs (last OA import) (parallel Promise.all)
     RSC->>DB: fetchAllTimesheets() — paginated (see ADR-005)
     DB-->>RSC: All rows (RLS enforced)
     RSC->>Calc: calcBudgetKPIs(budgetEntries, totalBudget)
@@ -64,15 +64,17 @@ sequenceDiagram
     RSC->>Calc: calcScopeKPIs(issues, sprints)
     RSC->>Calc: calcStabilityIndex(kpis, thresholds)
     Calc-->>RSC: StabilityResult + KPI objects
-    RSC->>Browser: Full HTML (KPI cards, charts, stability badge)
+    RSC->>RSC: Sum booked_hours for current calendar month (from timesheets)
+    RSC->>Browser: Full HTML (KPI cards + Time Analysis tile, stability badge)
     Browser->>PM: Rendered dashboard (target: < 2 s)
 ```
 
 **Key invariants:**
-- All seven database queries run in a single `Promise.all` — no sequential round-trips
+- All eight database queries (including the `import_logs` lookup for the Time Analysis tile) run in a single `Promise.all` — no sequential round-trips
 - KPI computation is synchronous and happens in the same server request; no separate API call is needed
 - RLS ensures that even if the wrong `[id]` is requested, Supabase returns empty results rather than another user's data
-- If no import data exists, the dashboard renders an empty-state prompt instead of KPI cards
+- The Time Analysis tile is always rendered; it shows `—` when no OpenAir import exists and `0 h` when imported but no bookings fall in the current month
+- If no KPI data exists, the dashboard renders an empty-state prompt instead of the four KPI cards, but the Time Analysis tile remains visible
 
 ---
 
