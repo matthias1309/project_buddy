@@ -286,6 +286,8 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
                     <thead>
                       <tr className="border-b text-left text-xs text-muted-foreground">
                         <th className="pb-2 font-medium">Ticket</th>
+                        <th className="pb-2 font-medium">Issue Type</th>
+                        <th className="pb-2 font-medium">Summary</th>
                         <th className="pb-2 text-right font-medium">Booked Hours</th>
                         <th className="pb-2 text-right font-medium">Story Points</th>
                       </tr>
@@ -294,6 +296,12 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
                       {epicHours.map((row) => (
                         <tr key={row.ref}>
                           <td className="py-1.5 font-mono text-xs">{row.ref}</td>
+                          <td className="py-1.5 text-xs text-muted-foreground">
+                            {row.issueType ?? "—"}
+                          </td>
+                          <td className="py-1.5 text-xs text-muted-foreground">
+                            {row.summaryPreview ?? "—"}
+                          </td>
                           <td className="py-1.5 text-right tabular-nums">
                             {fmtH(row.hours)}
                           </td>

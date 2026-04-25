@@ -40,11 +40,21 @@ export function calcEpicHours(
   }
 
   return Array.from(hoursMap.entries())
-    .map(([ref, hours]) => ({
-      ref,
-      hours,
-      storyPoints: issueMap.get(ref)?.storyPoints ?? null,
-    }))
+    .map(([ref, hours]) => {
+      const linked = issueMap.get(ref);
+      const full = linked?.summary ?? null;
+      return {
+        ref,
+        hours,
+        storyPoints: linked?.storyPoints ?? null,
+        issueType: linked?.issueType ?? null,
+        summaryPreview: full
+          ? full.length > 25
+            ? full.slice(0, 25) + "…"
+            : full
+          : null,
+      };
+    })
     .sort((a, b) => b.hours - a.hours);
 }
 

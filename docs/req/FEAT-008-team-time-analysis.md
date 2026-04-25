@@ -57,18 +57,24 @@ When the import pipeline processes the row
 Then the row is excluded from all time analysis calculations
 ```
 
-### Dashboard Summary Card (main dashboard `/`)
+### Time Analysis Tile (project detail dashboard `/projects/[id]`)
 
 ```gherkin
 Given a project with at least one approved or submitted timesheet entry
-When the project overview page renders
-Then each project card shows a "Time" section with total hours for the current month
+When the project detail dashboard renders
+Then a "Time Analysis" tile is visible showing:
+  - the date of the last OpenAir import
+  - total approved/submitted hours for the current calendar month
 
 Given the current month has no submitted/approved entries for a project
-When the project overview page renders
-Then the Time section shows 0 h
+When the project detail dashboard renders
+Then the Time Analysis tile shows "0 h" for the current month
 
-Given the user clicks the Time section of a project card
+Given no OpenAir import has been performed for the project
+When the project detail dashboard renders
+Then the Time Analysis tile shows "—" for both last import and current month hours
+
+Given the user clicks the Time Analysis tile
 When the navigation resolves
 Then the user lands on /projects/[id]/time
 ```
@@ -122,7 +128,11 @@ And totals are shown when "All teams" is selected
 ```gherkin
 Given timesheet entries with a ticket_ref and matching jira_issues rows
 When the Epic Hours table renders
-Then each row shows: Epic / Ticket, Booked Hours (OA), Story Points (Jira)
+Then each row shows: Epic / Ticket, Issue Type, Summary (first 25 chars), Booked Hours (OA), Story Points (Jira)
+
+Given a Summary value is longer than 25 characters
+When the Epic Hours table renders
+Then the Summary cell shows the first 25 characters followed by "…"
 
 Given no Jira data is available
 When the Epic Hours table renders
@@ -130,7 +140,7 @@ Then the table shows a hint "Jira import required for epic mapping"
 
 Given a ticket_ref that matches no jira_issues row
 When the Epic Hours table renders
-Then the row appears with ticket_ref as label and "—" in the Story Points column
+Then the row appears with ticket_ref as label and "—" in Issue Type, Summary, and Story Points columns
 ```
 
 #### Section 4 — Bug Cost Indicator
@@ -175,18 +185,23 @@ ALTER TABLE oa_timesheets
 - All data fetched server-side; no client-side data requests.
 - Filter UI (time + team) must work as a plain HTML form with GET parameters so it is bookmarkable and works without JS.
 
-### Dashboard card addition (`app/(dashboard)/page.tsx`)
+### Time Analysis tile (`app/(dashboard)/projects/[id]/page.tsx`)
 
-- Add a compact "Time" row to each project card showing `X h` for the current month (submitted + approved only).
-- Clicking the row navigates to `/projects/[id]/time`.
-- If no timesheet data exists for the project, show `—` instead of `0 h` to avoid confusion with "imported but zero hours".
+- Add a "Time Analysis" tile to the project detail dashboard (alongside the existing Budget, Zeitplan, Ressourcen, Scope tiles).
+- The tile displays two values:
+  - **Last import:** formatted date of the most recent `import_logs` entry with `source = 'openair'` for this project; show `—` if none.
+  - **This month:** sum of `hours` from `oa_timesheets` where `status IN ('submitted', 'approved')` and the date falls in the current calendar month; show `—` if no import exists, `0 h` if imported but zero hours.
+- Clicking the tile navigates to `/projects/[id]/time`.
+- The project overview page (`app/(dashboard)/page.tsx`) does **not** show any Time section; all time entry points are via the project detail dashboard.
 
 ### KPI / calculation module
 
 - New file `lib/calculations/time-calculations.ts` with pure functions:
   - `calcHoursByTeam(entries)` → `{ team: string; hours: number }[]`
   - `calcHoursByCategory(entries)` → `{ category: string; hours: number }[]`
-  - `calcEpicHours(timesheets, jiraIssues)` → `{ ref: string; hours: number; storyPoints: number | null }[]`
+  - `calcEpicHours(timesheets, jiraIssues)` → `{ ref: string; hours: number; storyPoints: number | null; issueType: string | null; summaryPreview: string | null }[]`
+    - `summaryPreview` = first 25 characters of `summary` followed by `…` if the full summary exceeds 25 characters, otherwise the full summary.
+    - `issueType` and `summaryPreview` are `null` when no matching Jira issue is found (rendered as `—` in the table).
   - `calcBugCost(timesheets, jiraIssues)` → `{ totalHours: number; hoursPerSP: number | null }`
 - All functions are pure (no DB calls, no side effects) and covered by unit tests ≥ 95%.
 

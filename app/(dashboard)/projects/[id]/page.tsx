@@ -12,6 +12,7 @@ import { BudgetCard } from "@/components/dashboard/budget-card";
 import { ScheduleCard } from "@/components/dashboard/schedule-card";
 import { ResourceCard } from "@/components/dashboard/resource-card";
 import { ScopeCard } from "@/components/dashboard/scope-card";
+import { TimeAnalysisCard } from "@/components/dashboard/time-analysis-card";
 import { Button } from "@/components/ui/button";
 import type {
   JiraIssue,
@@ -60,6 +61,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
     { data: rawMilestones },
     { data: rawBudget },
     { data: rawThresholds },
+    { data: rawLastOAImport },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -77,9 +79,33 @@ export default async function ProjectDashboardPage({ params }: Props) {
       .select("*")
       .eq("project_id", params.id)
       .single(),
+    supabase
+      .from("import_logs")
+      .select("imported_at")
+      .eq("project_id", params.id)
+      .eq("source", "openair")
+      .order("imported_at", { ascending: false })
+      .limit(1),
   ]);
 
   if (!project) redirect("/");
+
+  // Time Analysis tile data
+  const lastOARow = rawLastOAImport?.[0] ?? null;
+  const lastImportDateStr = lastOARow
+    ? new Date(lastOARow.imported_at).toLocaleDateString("de-DE")
+    : null;
+  const now = new Date();
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonthHours = lastOARow
+    ? rawTimesheets.reduce(
+        (sum, r) =>
+          (r.period_date as string | null)?.slice(0, 7) === currentYM
+            ? sum + (r.booked_hours ?? 0)
+            : sum,
+        0,
+      )
+    : null;
 
   const hasData =
     (rawIssues?.length ?? 0) +
@@ -228,7 +254,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
         </div>
       </div>
 
-      {/* No data state */}
+      {/* No data state for KPI tiles */}
       {!hasData && (
         <div className="rounded-lg border border-dashed p-10 text-center">
           <p className="text-muted-foreground">
@@ -244,49 +270,57 @@ export default async function ProjectDashboardPage({ params }: Props) {
         </div>
       )}
 
-      {/* KPI grid */}
-      {hasData && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <BudgetCard
-            plannedEur={budgetKPIs.plannedEur}
-            actualEur={budgetKPIs.actualEur}
-            differenceEur={budgetKPIs.differenceEur}
-            differencePct={budgetKPIs.differencePct}
-            burnRate={budgetKPIs.burnRate}
-            status={dim("budget").status}
-          />
+      {/* Tile grid — KPI cards only when data exists, Time Analysis always */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {hasData && (
+          <>
+            <BudgetCard
+              plannedEur={budgetKPIs.plannedEur}
+              actualEur={budgetKPIs.actualEur}
+              differenceEur={budgetKPIs.differenceEur}
+              differencePct={budgetKPIs.differencePct}
+              burnRate={budgetKPIs.burnRate}
+              status={dim("budget").status}
+            />
 
-          <ScheduleCard
-            totalMilestones={scheduleKPIs.totalMilestones}
-            delayedMilestones={scheduleKPIs.delayedMilestones}
-            maxDelayDays={scheduleKPIs.maxDelayDays}
-            nextMilestone={nextMilestone}
-            delayedList={delayedMilestones}
-            statusBreakdown={statusBreakdown}
-            status={dim("schedule").status}
-          />
+            <ScheduleCard
+              totalMilestones={scheduleKPIs.totalMilestones}
+              delayedMilestones={scheduleKPIs.delayedMilestones}
+              maxDelayDays={scheduleKPIs.maxDelayDays}
+              nextMilestone={nextMilestone}
+              delayedList={delayedMilestones}
+              statusBreakdown={statusBreakdown}
+              status={dim("schedule").status}
+            />
 
-          <ResourceCard
-            byRole={resourceKPIs.byRole}
-            overallUtilizationPct={resourceKPIs.overallUtilizationPct}
-            status={dim("resource").status}
-            yellowThreshold={thresholds.resourceYellowPct}
-            redThreshold={thresholds.resourceRedPct}
-          />
+            <ResourceCard
+              byRole={resourceKPIs.byRole}
+              overallUtilizationPct={resourceKPIs.overallUtilizationPct}
+              status={dim("resource").status}
+              yellowThreshold={thresholds.resourceYellowPct}
+              redThreshold={thresholds.resourceRedPct}
+            />
 
-          <ScopeCard
-            totalStoryPoints={scopeKPIs.totalStoryPoints}
-            completedStoryPoints={scopeKPIs.completedStoryPoints}
-            completionPct={scopeKPIs.completionPct}
-            openIssues={scopeKPIs.openIssues}
-            totalIssues={scopeKPIs.totalIssues}
-            bugRate={scopeKPIs.bugRate}
-            velocityTrend={scopeKPIs.velocityTrend}
-            scopeGrowthPct={scopeKPIs.scopeGrowthPct}
-            status={dim("scope").status}
-          />
-        </div>
-      )}
+            <ScopeCard
+              totalStoryPoints={scopeKPIs.totalStoryPoints}
+              completedStoryPoints={scopeKPIs.completedStoryPoints}
+              completionPct={scopeKPIs.completionPct}
+              openIssues={scopeKPIs.openIssues}
+              totalIssues={scopeKPIs.totalIssues}
+              bugRate={scopeKPIs.bugRate}
+              velocityTrend={scopeKPIs.velocityTrend}
+              scopeGrowthPct={scopeKPIs.scopeGrowthPct}
+              status={dim("scope").status}
+            />
+          </>
+        )}
+
+        <TimeAnalysisCard
+          projectId={params.id}
+          lastImportDate={lastImportDateStr}
+          currentMonthHours={currentMonthHours}
+        />
+      </div>
     </main>
   );
 }

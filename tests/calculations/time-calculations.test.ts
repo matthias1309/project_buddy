@@ -181,6 +181,64 @@ describe("calcEpicHours", () => {
     expect(result[1].ref).toBe("ABC-3");
     expect(result[2].ref).toBe("ABC-1");
   });
+
+  it("sets issueType from matching JiraIssue", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", issueType: "Bug" })],
+    );
+    expect(result[0].issueType).toBe("Bug");
+  });
+
+  it("sets issueType to null when no matching JiraIssue exists", () => {
+    const result = calcEpicHours([ts({ ticketRef: "XYZ-99", bookedHours: 4 })], []);
+    expect(result[0].issueType).toBeNull();
+  });
+
+  it("sets issueType to null when matched issue has no issueType", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", issueType: undefined })],
+    );
+    expect(result[0].issueType).toBeNull();
+  });
+
+  it("returns full summary when 25 chars or fewer", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", summary: "Short summary" })],
+    );
+    expect(result[0].summaryPreview).toBe("Short summary");
+  });
+
+  it("truncates summaryPreview at 25 chars and appends ellipsis", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", summary: "A".repeat(30) })],
+    );
+    expect(result[0].summaryPreview).toBe("A".repeat(25) + "…");
+  });
+
+  it("does not append ellipsis when summary is exactly 25 chars", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", summary: "A".repeat(25) })],
+    );
+    expect(result[0].summaryPreview).toBe("A".repeat(25));
+  });
+
+  it("sets summaryPreview to null when no matching JiraIssue exists", () => {
+    const result = calcEpicHours([ts({ ticketRef: "XYZ-99", bookedHours: 4 })], []);
+    expect(result[0].summaryPreview).toBeNull();
+  });
+
+  it("sets summaryPreview to null when matched issue has no summary", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", summary: undefined })],
+    );
+    expect(result[0].summaryPreview).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
