@@ -168,6 +168,11 @@ describe("calcEpicHours", () => {
     expect(result).toHaveLength(1);
   });
 
+  it("treats undefined bookedHours as 0 when accumulating ticket hours", () => {
+    const result = calcEpicHours([ts({ ticketRef: "ABC-1", bookedHours: undefined })], []);
+    expect(result[0].hours).toBe(0);
+  });
+
   it("sorts result descending by hours", () => {
     const result = calcEpicHours(
       [
@@ -307,6 +312,14 @@ describe("calcBugCost", () => {
     const result = calcBugCost(
       [ts({ ticketRef: undefined, bookedHours: 99 })],
       [issue({ issueKey: "X-1", issueType: "Bug", storyPoints: 1 })],
+    );
+    expect(result.totalHours).toBe(0);
+  });
+
+  it("treats undefined bookedHours as 0 for bug-type timesheets", () => {
+    const result = calcBugCost(
+      [ts({ ticketRef: "BUG-1", bookedHours: undefined })],
+      [issue({ issueKey: "BUG-1", issueType: "Bug", storyPoints: 1 })],
     );
     expect(result.totalHours).toBe(0);
   });

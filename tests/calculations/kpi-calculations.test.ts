@@ -160,6 +160,24 @@ describe("calcScheduleKPIs", () => {
     const r = calcScheduleKPIs(milestones);
     expect(r.delayedMilestones).toBe(0);
   });
+
+  it("does not update maxDelayDays when a later milestone has a smaller delay", () => {
+    const r = calcScheduleKPIs([
+      { name: "Big", plannedDate: new Date("2024-01-01"), actualDate: new Date("2024-03-01"), status: "completed" }, // ~60 days
+      { name: "Small", plannedDate: new Date("2024-04-01"), actualDate: new Date("2024-04-06"), status: "completed" }, // 5 days — false branch
+    ]);
+    expect(r.maxDelayDays).toBeGreaterThan(5);
+  });
+
+  it("places milestones without plannedDate at the end when sorting next milestone", () => {
+    // Three elements force comparisons where the dateless milestone appears as both a and b
+    const r = calcScheduleKPIs([
+      { name: "NoDueDate1", status: "open" },
+      { name: "HasDate", plannedDate: new Date("2024-06-01"), status: "open" },
+      { name: "NoDueDate2", status: "open" },
+    ]);
+    expect(r.nextMilestone?.name).toBe("HasDate");
+  });
 });
 
 // ─────────────────────────────────────────────
@@ -224,6 +242,13 @@ describe("calcResourceKPIs", () => {
     const r = calcResourceKPIs(ts);
     // overall: planned=50, booked=45 → 90%
     expect(r.overallUtilizationPct).toBeCloseTo(90, 1);
+  });
+
+  it("treats undefined plannedHours and bookedHours as 0", () => {
+    const r = calcResourceKPIs([{ role: "Dev" }]);
+    expect(r.byRole[0].plannedHours).toBe(0);
+    expect(r.byRole[0].bookedHours).toBe(0);
+    expect(r.overallUtilizationPct).toBe(0);
   });
 });
 

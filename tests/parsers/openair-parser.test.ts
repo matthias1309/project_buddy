@@ -502,6 +502,157 @@ describe("openairParser", () => {
     });
   });
 
+  describe("edge cases", () => {
+    it("should return undefined for plannedDate when a numeric (non-date) value is in the date column", () => {
+      const buf = buildBuffer({
+        Meilensteine: [
+          { Name: "Launch", Geplant: 42, Status: "pending" },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.milestones).toHaveLength(1);
+      expect(result.milestones[0].plannedDate).toBeUndefined();
+    });
+
+    it("should warn when a budget entry is missing the planned EUR value", () => {
+      const buf = buildBuffer({
+        Budget: [
+          { Kategorie: "Reise", "Ist (EUR)": 5000 },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.warnings.some((w) => /missing/i.test(w))).toBe(true);
+      expect(result.budgetEntries).toHaveLength(1);
+      expect(result.budgetEntries[0].plannedEur).toBeUndefined();
+    });
+
+    it("should detect a budget block in a generic sheet via the fallback scanner", () => {
+      const buf = buildBuffer({
+        "Data Export": [
+          { Kategorie: "Personal", "Geplant (EUR)": 100000, "Ist (EUR)": 80000 },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.budgetEntries).toHaveLength(1);
+      expect(result.budgetEntries[0].category).toBe("Personal");
+    });
+
+    it("should detect a milestones block in a generic sheet via the fallback scanner", () => {
+      const buf = buildBuffer({
+        "Export Data": [
+          { Name: "Kick-off", Geplant: "2024-01-15", Status: "completed" },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.milestones).toHaveLength(1);
+      expect(result.milestones[0].name).toBe("Kick-off");
+    });
+
+    it("should skip milestone rows with an empty name", () => {
+      const buf = buildBuffer({
+        Meilensteine: [
+          { Name: "", Geplant: "2024-01-01", Status: "pending" },
+          { Name: "Go-Live", Geplant: "2024-06-01", Status: "planned" },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.milestones).toHaveLength(1);
+      expect(result.milestones[0].name).toBe("Go-Live");
+    });
+
+    it("should return undefined for null/missing date cells and invalid date strings", () => {
+      // Uses json_to_sheet with null values: XLSX skips null cells, sheet_to_json returns undefined for them.
+      // { Name: "MS1", Geplant: null, Status: null }
+      //   → cellDate(undefined): !undefined → true → return undefined  (line 61 branch)
+      //   → cellString(undefined): undefined === null check → return ""  (line 50 branch)
+      //   → "" || undefined → undefined  (line 269 binary-expr branch)
+      // { Name: "MS2", Geplant: "bad-date" }
+      //   → cellDate("bad-date"): new Date("bad-date") → isNaN → return undefined  (line 65 branch)
+      const buf = buildBuffer({
+        Meilensteine: [
+          { Name: "MS1", Geplant: null, Status: null },
+          { Name: "MS2", Geplant: "bad-date" },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.milestones).toHaveLength(2);
+      expect(result.milestones[0].plannedDate).toBeUndefined();
+      expect(result.milestones[0].status).toBeUndefined();
+      expect(result.milestones[1].plannedDate).toBeUndefined();
+    });
+
+    it("should set plannedDate and status to undefined when those columns are absent from the milestone sheet", () => {
+      // Headers = ["Name"] only: colPlanned = -1 (line 267 false branch), colStatus = -1 (line 269 ternary false branch)
+      const buf = buildBuffer({
+        Meilensteine: [{ Name: "Launch" }],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.milestones).toHaveLength(1);
+      expect(result.milestones[0].plannedDate).toBeUndefined();
+      expect(result.milestones[0].status).toBeUndefined();
+    });
+
+    it("should handle budget rows with null numeric cells and non-numeric values", () => {
+      // "Geplant (EUR)": null → column exists, cell missing → cellNumber(undefined) (line 55 branch)
+      // "Ist (EUR)": "abc"  → cellNumber("abc") → Number("abc") = NaN → return undefined (line 57 branch)
+      const buf = buildBuffer({
+        Budget: [
+          { Kategorie: "Test", "Geplant (EUR)": null, "Ist (EUR)": "abc" },
+        ],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.budgetEntries).toHaveLength(1);
+      expect(result.budgetEntries[0].plannedEur).toBeUndefined();
+      expect(result.budgetEntries[0].actualEur).toBeUndefined();
+    });
+
+    it("should skip whitespace rows and pass through non-matching headers in the fallback scanner", () => {
+      // aoa_to_sheet lets us place rows in exact positions.
+      // Whitespace-only cells pass the XLSX writer but isEmptyRow trims them → continue (line 306).
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet([
+          ["  ", "  "],                              // whitespace row → isEmptyRow → continue (line 306)
+          ["Unknown", "Column", "Headers"],          // blockType = null → all three if-conditions false
+          ["Mitarbeiter", "Gebuchte Stunden"],       // blockType = timesheets → line 311 true
+          ["Alice", 10],
+        ]),
+        "Report",
+      );
+      const buf = Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+      const result = parseOpenAirExcel(buf);
+      expect(result.timesheets).toHaveLength(1);
+    });
+
+    it("should produce no milestones when the sheet has no Name column", () => {
+      // colName = -1 → const name = "" → all rows skipped  (line 262 false branch)
+      const buf = buildBuffer({
+        Meilensteine: [{ Geplant: "2024-01-01", Status: "done" }],
+      });
+      const result = parseOpenAirExcel(buf);
+      expect(result.milestones).toHaveLength(0);
+    });
+
+    it("should skip whitespace-only rows inside a named milestone sheet", () => {
+      // isEmptyRow returns true for whitespace → continue  (line 260 branch)
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet([
+          ["Name", "Geplant", "Status"],
+          ["Kick-off", "2024-01-01", "done"],
+          ["  ", "  ", "  "],              // whitespace row → isEmptyRow → continue
+          ["Go-Live", "2024-06-01", "planned"],
+        ]),
+        "Meilensteine",
+      );
+      const buf = Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+      const result = parseOpenAirExcel(buf);
+      expect(result.milestones).toHaveLength(2);
+    });
+  });
+
   describe("budget warning suppression for new-format (FEAT-008)", () => {
     it("should NOT emit a budget warning for new-format timesheet-only exports", () => {
       const buf = buildBuffer({

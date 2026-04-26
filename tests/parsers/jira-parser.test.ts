@@ -166,5 +166,150 @@ describe("jiraParser", () => {
 
       expect(result.issues[0].storyPoints).toBeUndefined();
     });
+
+    it("should return undefined storyPoints for a non-numeric value", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Done", "Story Points": "not-a-number" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].storyPoints).toBeUndefined();
+    });
+
+    it("should return undefined createdDate for an invalid date string", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Done", Created: "not-a-date" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].createdDate).toBeUndefined();
+    });
+
+    it("should return undefined createdDate when cell value is a plain number", () => {
+      // A plain number without date format hits the non-string truthy branch in cellDate
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet([
+          ["Issue Key", "Status", "Created"],
+          ["PROJ-1", "Done", 42],
+        ]),
+        "Issues",
+      );
+      const buf = Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].createdDate).toBeUndefined();
+    });
+
+    it("should parse Date objects written to xlsx (instanceof Date branch)", () => {
+      // json_to_sheet with a JS Date writes a date-formatted cell;
+      // XLSX.read with cellDates:true reads it back as a Date object
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Done", Created: new Date("2024-01-15") },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].createdDate).toBeInstanceOf(Date);
+    });
+
+    it("should map empty optional issue string fields to undefined", () => {
+      // Covers the `|| undefined` fallback for summary, sprint, epic, assignee
+      const buf = buildBuffer([
+        {
+          "Issue Key": "PROJ-1",
+          Status: "Done",
+          Summary: "",
+          Sprint: "",
+          "Epic Link": "",
+          Assignee: "",
+        },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].summary).toBeUndefined();
+      expect(result.issues[0].sprint).toBeUndefined();
+      expect(result.issues[0].epic).toBeUndefined();
+      expect(result.issues[0].assignee).toBeUndefined();
+    });
+
+    it("should generate errors for all rows when no Issue Key column exists", () => {
+      // colIssueKey = -1 → issueKey = "" for every row → error for each
+      const buf = buildBuffer([{ Status: "Done", Summary: "No key column" }]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.issues).toHaveLength(0);
+    });
+
+    it("should fall back to the first sheet when no sheet name matches /issue|jira/", () => {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet([{ "Issue Key": "PROJ-1", Status: "Done" }]),
+        "Data Export",
+      );
+      const buf = Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues).toHaveLength(1);
+    });
+
+    it("should handle a sprints sheet with only the Sprint Name column", () => {
+      // colState/colStart/colEnd/colCompleted/colPlanned all = -1
+      const buf = buildBuffer(
+        [{ "Issue Key": "PROJ-1", Status: "Done" }],
+        [{ "Sprint Name": "Sprint 1" }],
+      );
+      const result = parseJiraExcel(buf);
+
+      expect(result.sprints).toHaveLength(1);
+      expect(result.sprints[0].state).toBeUndefined();
+      expect(result.sprints[0].startDate).toBeUndefined();
+      expect(result.sprints[0].plannedPoints).toBeUndefined();
+    });
+
+    it("should map an empty Sprint State cell to undefined", () => {
+      // cellString(row[colState]) returns "" → `|| undefined` kicks in
+      const buf = buildBuffer(
+        [{ "Issue Key": "PROJ-1", Status: "Done" }],
+        [{ "Sprint Name": "Sprint 1", State: "" }],
+      );
+      const result = parseJiraExcel(buf);
+
+      expect(result.sprints[0].state).toBeUndefined();
+    });
+
+    it("should skip a sprint row when the Sprint Name cell is empty", () => {
+      const buf = buildBuffer(
+        [{ "Issue Key": "PROJ-1", Status: "Done" }],
+        [
+          { "Sprint Name": "Sprint 1" },
+          { "Sprint Name": "" },
+        ],
+      );
+      const result = parseJiraExcel(buf);
+
+      expect(result.sprints).toHaveLength(1);
+    });
+
+    it("should skip all sprint rows when no Sprint Name column is present", () => {
+      // colName = -1 → sprintName = "" for all rows → all skipped
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet([{ "Issue Key": "PROJ-1", Status: "Done" }]),
+        "Issues",
+      );
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet([{ Foo: "bar" }]),
+        "Sprints",
+      );
+      const buf = Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+      const result = parseJiraExcel(buf);
+
+      expect(result.sprints).toHaveLength(0);
+    });
   });
 });
