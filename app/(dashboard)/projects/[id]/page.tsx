@@ -9,6 +9,7 @@ import { calcScopeKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcStabilityIndex } from "@/lib/calculations/stability-index";
 import { StabilityBadge } from "@/components/shared/stability-badge";
 import { SprintFilter } from "@/components/shared/sprint-filter";
+import { TeamFilter } from "@/components/shared/team-filter";
 import { BudgetCard } from "@/components/dashboard/budget-card";
 import { ScheduleCard } from "@/components/dashboard/schedule-card";
 import { ResourceCard } from "@/components/dashboard/resource-card";
@@ -44,7 +45,7 @@ const DEFAULT_THRESHOLDS: ProjectThresholds = {
 
 interface Props {
   params: { id: string };
-  searchParams: { sprint?: string | string[] };
+  searchParams: { sprint?: string | string[]; team?: string | string[] };
 }
 
 export default async function ProjectDashboardPage({ params, searchParams }: Props) {
@@ -109,23 +110,6 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
       ? [searchParams.sprint]
       : [];
 
-  // Time Analysis tile data
-  const lastOARow = rawLastOAImport?.[0] ?? null;
-  const lastImportDateStr = lastOARow
-    ? new Date(lastOARow.imported_at).toLocaleDateString("de-DE")
-    : null;
-  const now = new Date();
-  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const currentMonthHours = lastOARow
-    ? rawTimesheets.reduce(
-        (sum, r) =>
-          (r.period_date as string | null)?.slice(0, 7) === currentYM
-            ? sum + (r.booked_hours ?? 0)
-            : sum,
-        0,
-      )
-    : null;
-
   const hasData =
     (rawIssues?.length ?? 0) +
       rawTimesheets.length +
@@ -165,14 +149,50 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
     plannedPoints: r.planned_points ?? undefined,
   }));
 
-  const timesheets: OATimesheet[] = rawTimesheets.map((r) => ({
+  const allTimesheets: OATimesheet[] = rawTimesheets.map((r) => ({
     employeeName: r.employee_name ?? undefined,
-    role: r.role ?? undefined,
-    phase: r.phase ?? undefined,
+    role:         r.role ?? undefined,
+    phase:        r.phase ?? undefined,
     plannedHours: r.planned_hours ?? undefined,
-    bookedHours: r.booked_hours ?? undefined,
-    periodDate: r.period_date ? new Date(r.period_date) : undefined,
+    bookedHours:  r.booked_hours ?? undefined,
+    periodDate:   r.period_date ? new Date(r.period_date) : undefined,
+    team:         r.team ?? undefined,
   }));
+
+  const allTeams = [
+    ...new Set(allTimesheets.map((t) => t.team).filter((t): t is string => !!t)),
+  ].sort();
+
+  const selectedTeamNames: string[] = Array.isArray(searchParams.team)
+    ? searchParams.team
+    : searchParams.team
+      ? [searchParams.team]
+      : [];
+
+  const timesheets =
+    selectedTeamNames.length > 0
+      ? allTimesheets.filter((t) => t.team && selectedTeamNames.includes(t.team))
+      : allTimesheets;
+
+  // Time Analysis tile data
+  const lastOARow = rawLastOAImport?.[0] ?? null;
+  const lastImportDateStr = lastOARow
+    ? new Date(lastOARow.imported_at).toLocaleDateString("de-DE")
+    : null;
+  const now = new Date();
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonthHours = lastOARow
+    ? allTimesheets.reduce(
+        (sum, t) => {
+          if (!t.periodDate) return sum;
+          const ym = `${t.periodDate.getFullYear()}-${String(t.periodDate.getMonth() + 1).padStart(2, "0")}`;
+          if (ym !== currentYM) return sum;
+          if (selectedTeamNames.length > 0 && (!t.team || !selectedTeamNames.includes(t.team))) return sum;
+          return sum + (t.bookedHours ?? 0);
+        },
+        0,
+      )
+    : null;
 
   const milestones: OAMilestone[] = (rawMilestones ?? []).map((r) => ({
     name: r.name,
@@ -298,9 +318,16 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
         </div>
       )}
 
-      {/* Sprint filter — only shown when sprints are configured and data exists */}
-      {hasData && allProjectSprints.length > 0 && (
-        <SprintFilter sprints={allProjectSprints} />
+      {/* Filter bar — only shown when data exists */}
+      {hasData && (allProjectSprints.length > 0 || allTeams.length > 0) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {allProjectSprints.length > 0 && (
+            <SprintFilter sprints={allProjectSprints} />
+          )}
+          {allTeams.length > 0 && (
+            <TeamFilter teams={allTeams} />
+          )}
+        </div>
       )}
 
       {/* Tile grid — KPI cards only when data exists, Time Analysis always */}
