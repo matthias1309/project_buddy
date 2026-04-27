@@ -42,6 +42,49 @@ Feature: Projektdetail-Dashboard
     Then zeigt die Ressourcen-Kachel die betroffene Rolle in Rot
 ```
 
+### Filter-Erweiterungen (nachträglich ergänzt)
+
+```gherkin
+  Scenario: Team-Filter — kein Filter aktiv
+    Given ein Projekt mit OpenAir-Timesheets verschiedener Teams
+    When der Nutzer das Dashboard ohne team-Parameter öffnet
+    Then zeigt die Ressourcen-Kachel die Auslastung aller Teams aggregiert
+    And die Time-Analysis-Kachel zeigt die Stunden aller Teams im aktuellen Monat
+    And ein "Team"-Popover-Filter ist im Filter-Bar sichtbar mit Label "All teams"
+
+  Scenario: Team-Filter — ein Team ausgewählt
+    Given ein Projekt mit Teams "Team Alpha" und "Team Panda"
+    When der Nutzer "Team Alpha" im Team-Filter auswählt
+    Then ist der URL-Parameter ?team=Team+Alpha gesetzt
+    And die Ressourcen-Kachel zeigt nur Auslastung der Rollen aus Team Alpha
+    And die Time-Analysis-Kachel zeigt nur Stunden von Team Alpha im aktuellen Monat
+    And der Filter-Label zeigt "Team Alpha"
+
+  Scenario: Team-Filter — mehrere Teams ausgewählt
+    Given ein Projekt mit Teams "Team Alpha" und "Team Panda"
+    When der Nutzer beide Teams im Filter auswählt
+    Then ist der URL-Parameter ?team=Team+Alpha&team=Team+Panda gesetzt
+    And der Filter-Label zeigt "2 teams"
+
+  Scenario: Team-Filter — nicht sichtbar ohne Team-Daten
+    Given ein Projekt ohne OpenAir-Timesheets oder ohne Team-Spalte in den Daten
+    When der Nutzer das Dashboard öffnet
+    Then ist kein Team-Filter-Element im Filter-Bar sichtbar
+
+  Scenario: Sprint-Filter — Scope-Kachel gefiltert
+    Given ein Projekt mit konfigurierten Sprints (FEAT-009)
+    When der Nutzer einen Sprint im Sprint-Filter auswählt
+    Then zeigt die Scope-Kachel nur Jira-Issues deren sprint-Feld den Sprint-Namen enthält
+    And die Time-Analysis-Kachel bleibt unverändert (zeigt aktuellen Monat)
+
+  Scenario: Sprint- und Team-Filter — gleichzeitig aktiv
+    Given ein Projekt mit konfigurierten Sprints und Teams
+    When der Nutzer einen Sprint und ein Team gleichzeitig auswählt
+    Then zeigt die Scope-Kachel Issues des gewählten Sprints
+    And die Ressourcen-Kachel zeigt nur Daten des gewählten Teams
+    And die Stabilitätsampel bleibt unverändert (zeigt immer Gesamtstatus)
+```
+
 ### Technische Hinweise
 
 - KPI-Berechnungen: `/lib/calculations/kpi-calculations.ts` (pure functions, Phase 4.1)
