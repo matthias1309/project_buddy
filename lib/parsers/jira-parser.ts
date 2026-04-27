@@ -21,10 +21,16 @@ const COL_SPRINT_END = ["end date", "enddatum"];
 const COL_SPRINT_COMPLETED = ["completed points", "fertige punkte"];
 const COL_SPRINT_PLANNED = ["planned points", "geplante punkte"];
 
+function normalizeDashes(s: string): string {
+  // Replace en-dash (–) and em-dash (—) with a regular hyphen so that
+  // Excel auto-correct variants like "T–Shirt" still match "t-shirt".
+  return s.replace(/[–—]/g, "-");
+}
+
 function findColumnIndex(headers: string[], candidates: string[]): number {
-  const normalized = headers.map((h) => h.toLowerCase().trim());
+  const normalized = headers.map((h) => normalizeDashes(h.toLowerCase().trim()));
   for (const candidate of candidates) {
-    const idx = normalized.indexOf(candidate.toLowerCase());
+    const idx = normalized.indexOf(normalizeDashes(candidate.toLowerCase()));
     if (idx !== -1) return idx;
   }
   return -1;

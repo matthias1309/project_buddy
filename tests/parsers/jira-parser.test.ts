@@ -388,6 +388,15 @@ describe("jiraParser", () => {
       expect(result.issues[0].tShirtDays).toBe(8);
     });
 
+    it("should parse T-Shirt when Excel auto-corrects the hyphen to an en-dash (T–Shirt)", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "Epic", "T–Shirt": "20" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].tShirtDays).toBe(20);
+    });
+
     it("should set tShirtDays regardless of Issue Type capitalisation (e.g. 'EPIC')", () => {
       const buf = buildBuffer([
         { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "EPIC", "T-Shirt": "15" },
