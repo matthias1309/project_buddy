@@ -79,6 +79,17 @@
 | **Response** | Unknown columns are silently ignored; all known columns are mapped correctly; no error is returned |
 | **Measure** | Unit test with a fixture file containing an unknown column `"Custom Field XYZ"` verifies that parsing succeeds and the unknown column does not appear in the output |
 
+### QS-08: E2E Test Coverage for Critical User Journeys
+
+| | |
+|---|---|
+| **Source** | Development team |
+| **Stimulus** | A code change is merged to `main` |
+| **Environment** | Local dev server (`npm run dev`); Playwright with `workers: 1` |
+| **Artefact** | `/e2e/*.spec.ts` (Playwright test suites) |
+| **Response** | All critical user journeys pass end-to-end in a real Chromium browser against the running Next.js application |
+| **Measure** | The following journeys are covered: (1) Auth: login, logout, redirect guards; (2) Project lifecycle golden path: create project → Jira import → OpenAir import → dashboard KPI tiles → navigation; (3) Import error handling: file too large, wrong file type, partial parse (missing key, missing budget fields); (4) Threshold settings: load defaults, save custom values, validation errors, reset to defaults; (5) Project form validation: required fields, cross-field date validation |
+
 ### QS-07: Role Extensibility
 
 | | |

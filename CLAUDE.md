@@ -177,9 +177,9 @@ For every feature, follow this sequence without exception:
 ### Test-Framework
 - **Vitest** für Unit- und Integrationstests
 - **React Testing Library** für Komponenten-Tests (nur kritische Komponenten)
-- **Playwright** für E2E (Phase 2, nicht MVP)
+- **Playwright** für E2E (aktiv, läuft gegen lokale Dev-Server-Instanz)
 
-### Konventionen
+### Konventionen (Unit/Integration)
 ```typescript
 // Dateiname: [modul].test.ts oder [modul].spec.ts
 // Struktur:
@@ -192,6 +192,51 @@ describe('jiraParser', () => {
 })
 ```
 
+### E2E-Konventionen (Playwright)
+
+**Dateistruktur:**
+```
+/e2e
+  auth.setup.ts              # Einmalig: Login + storageState speichern
+  auth.spec.ts               # Auth-Flows (Login, Logout, Redirects)
+  project-flow.spec.ts       # Golden Path: Projekt → Import → Dashboard
+  import-errors.spec.ts      # Import-Fehlerszenarien (Dateigröße, Typ, Parse)
+  settings.spec.ts           # Schwellenwert-Konfiguration (FEAT-007)
+  project-form-validation.spec.ts  # Projektformular-Validierung
+```
+
+**Pflicht-Pattern: Shared Browser Context in Serial Groups**  
+Jede `test.describe.serial`-Gruppe erstellt in `beforeAll` einen eigenen Browser-Context
+und schließt ihn in `afterAll`. Kein Fixture-`page`-Parameter in den einzelnen Tests.
+
+```typescript
+test.describe.serial("my flow", () => {
+  let page: Page;
+  test.beforeAll(async ({ browser }) => {
+    const context = await browser.newContext({ storageState: "e2e/.auth/user.json" });
+    page = await context.newPage();
+  });
+  test.afterAll(async () => { await page.context().close(); });
+
+  test("step 1", async () => { /* nutzt shared page */ });
+  test("step 2", async () => { /* nutzt shared page */ });
+});
+```
+
+Hintergrund: Supabase rotiert Refresh-Tokens bei Server-seitigen `getUser()`-Aufrufen.
+Jede neue Browser-Context würde mit dem alten Token aus `user.json` starten und
+nach der ersten Rotation unauthentifiziert sein (siehe ADR-006).
+
+**Weitere Regeln:**
+- `playwright.config.ts` → `workers: 1` — verhindert, dass parallele Spec-Dateien
+  dieselbe Supabase-Session gegenseitig invalidieren
+- `supabase.auth.signOut({ scope: "local" })` — nur lokale Session löschen;
+  globaler Signout würde Sessions laufender Tests im selben User-Account killen
+- Strict mode: bei Multi-Element-Matches immer `.first()` oder `{ exact: true }` verwenden,
+  nie stumm scheitern lassen
+- Lokale Fehler-Inhalte (Fehlertexte aus `lib/errors.ts`) in E2E-Tests hardcoden,
+  nicht per Import — die Tests laufen außerhalb des Next.js-Kontexts
+
 ### Coverage-Ziele (MVP)
 | Bereich | Ziel |
 |---|---|
@@ -199,6 +244,7 @@ describe('jiraParser', () => {
 | Berechnungen / Ampellogik | ≥ 95% |
 | API Routes | ≥ 80% |
 | UI-Komponenten | ≥ 60% |
+| E2E (kritische User Journeys) | Golden Path + Fehlerszenarien je Feature |
 
 ### Testdaten
 - Alle Fixtures sind **synthetisch generiert** – keine echten Projektdaten im Repository

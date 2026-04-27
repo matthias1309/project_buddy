@@ -73,7 +73,11 @@ test.describe.serial("project lifecycle golden path", () => {
   test("new project card appears on the projects overview with 'No data imported yet'", async () => {
     await page.goto("/");
     await expect(page.getByText(PROJECT_NAME)).toBeVisible();
-    await expect(page.getByText("No data imported yet")).toBeVisible();
+    // Scope to the specific card to avoid strict-mode violations when
+    // multiple projects without imports exist on the page
+    await expect(
+      page.locator("div").filter({ hasText: PROJECT_NAME }).filter({ hasText: "No data imported yet" }).first()
+    ).toBeVisible();
   });
 
   // ───────────────────────────────────────────────────────────
