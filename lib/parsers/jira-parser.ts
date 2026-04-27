@@ -9,6 +9,7 @@ const COL_STATUS = ["status"];
 const COL_STORY_POINTS = ["story points", "story point estimate"];
 const COL_SPRINT = ["sprint"];
 const COL_EPIC = ["epic link", "epic-link", "epic"];
+const COL_TSHIRT = ["t-shirt", "t shirt", "tshirt"];
 const COL_ASSIGNEE = ["assignee", "zugewiesene person"];
 const COL_CREATED = ["created", "erstellt"];
 const COL_RESOLVED = ["resolved", "gelöst", "geloest"];
@@ -71,6 +72,7 @@ function parseIssuesSheet(
   const colStoryPoints = findColumnIndex(headerRow, COL_STORY_POINTS);
   const colSprint = findColumnIndex(headerRow, COL_SPRINT);
   const colEpic = findColumnIndex(headerRow, COL_EPIC);
+  const colTShirt = findColumnIndex(headerRow, COL_TSHIRT);
   const colAssignee = findColumnIndex(headerRow, COL_ASSIGNEE);
   const colCreated = findColumnIndex(headerRow, COL_CREATED);
   const colResolved = findColumnIndex(headerRow, COL_RESOLVED);
@@ -93,14 +95,30 @@ function parseIssuesSheet(
       continue;
     }
 
+    const issueType =
+      colIssueType !== -1 ? cellString(row[colIssueType]) || undefined : undefined;
+    const isEpic = issueType?.toLowerCase() === "epic";
+
+    let tShirtDays: number | null | undefined = undefined;
+    if (isEpic && colTShirt !== -1) {
+      const raw = cellString(row[colTShirt]);
+      if (raw === "") {
+        tShirtDays = null;
+      } else {
+        const parsed = parseInt(raw, 10);
+        tShirtDays = isNaN(parsed) ? null : parsed;
+      }
+    }
+
     issues.push({
       issueKey,
       summary: colSummary !== -1 ? cellString(row[colSummary]) || undefined : undefined,
-      issueType: colIssueType !== -1 ? cellString(row[colIssueType]) || undefined : undefined,
+      issueType,
       status,
       storyPoints: colStoryPoints !== -1 ? cellNumber(row[colStoryPoints]) : undefined,
       sprint: colSprint !== -1 ? cellString(row[colSprint]) || undefined : undefined,
       epic: colEpic !== -1 ? cellString(row[colEpic]) || undefined : undefined,
+      ...(tShirtDays !== undefined ? { tShirtDays } : {}),
       assignee: colAssignee !== -1 ? cellString(row[colAssignee]) || undefined : undefined,
       createdDate: colCreated !== -1 ? cellDate(row[colCreated]) : undefined,
       resolvedDate: colResolved !== -1 ? cellDate(row[colResolved]) : undefined,

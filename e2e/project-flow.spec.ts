@@ -175,4 +175,29 @@ test.describe.serial("project lifecycle golden path", () => {
     await page.getByRole("link", { name: /Daten importieren/i }).click();
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/import`));
   });
+
+  // ───────────────────────────────────────────────────────────
+  // 7. Epic Budget tile (FEAT-011)
+  // ───────────────────────────────────────────────────────────
+
+  test("Epic Budget tile is visible on the dashboard after Jira import", async () => {
+    await page.goto(`/projects/${projectId}`);
+    await expect(page.getByText("Epic Budget")).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("clicking the Epic Budget tile navigates to the epics detail page", async () => {
+    await page.goto(`/projects/${projectId}`);
+    await page.getByText("Epic Budget").click();
+    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/epics`));
+  });
+
+  test("epics page shows at least one Epic row in the table", async () => {
+    await page.goto(`/projects/${projectId}/epics`);
+    // The page header should be visible
+    await expect(page.getByText("Epic Budget")).toBeVisible();
+    // At least one epic key from the fixture must appear (PROJ-E1 or PROJ-E2)
+    await expect(
+      page.getByText("PROJ-E1").or(page.getByText("PROJ-E2")).first(),
+    ).toBeVisible({ timeout: 10_000 });
+  });
 });

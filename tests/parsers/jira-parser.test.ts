@@ -27,7 +27,8 @@ describe("jiraParser", () => {
       const result = parseJiraExcel(buf);
 
       expect(result.errors).toHaveLength(0);
-      expect(result.issues).toHaveLength(5);
+      // 5 story/task/bug rows + 2 epic rows added for FEAT-011
+      expect(result.issues).toHaveLength(7);
 
       const first = result.issues[0];
       expect(first.issueKey).toBe("PROJ-1");
@@ -38,6 +39,24 @@ describe("jiraParser", () => {
       expect(first.sprint).toBe("Sprint 1");
       expect(first.epic).toBe("PROJ-E1");
       expect(first.assignee).toBe("Alice");
+    });
+
+    it("should parse tShirtDays from Epic rows in jira-sample.xlsx", () => {
+      const buf = fixture("jira-sample.xlsx");
+      const result = parseJiraExcel(buf);
+
+      const epic1 = result.issues.find((i) => i.issueKey === "PROJ-E1");
+      const epic2 = result.issues.find((i) => i.issueKey === "PROJ-E2");
+
+      expect(epic1).toBeDefined();
+      expect(epic1!.tShirtDays).toBe(10);
+
+      expect(epic2).toBeDefined();
+      expect(epic2!.tShirtDays).toBeNull(); // empty T-Shirt cell
+
+      // Non-epic rows must not carry tShirtDays
+      const story = result.issues.find((i) => i.issueKey === "PROJ-1");
+      expect(story!.tShirtDays).toBeUndefined();
     });
 
     it("should parse sprint data from Sprints sheet", () => {
@@ -310,6 +329,72 @@ describe("jiraParser", () => {
       const result = parseJiraExcel(buf);
 
       expect(result.sprints).toHaveLength(0);
+    });
+  });
+
+  describe("T-Shirt size parsing", () => {
+    it("should parse a numeric T-Shirt value on an Epic row", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "Epic", "T-Shirt": "25" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.issues[0].tShirtDays).toBe(25);
+    });
+
+    it("should return null tShirtDays for a non-numeric T-Shirt value on an Epic", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "Epic", "T-Shirt": "abc" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].tShirtDays).toBeNull();
+    });
+
+    it("should return null tShirtDays when the T-Shirt cell is empty on an Epic", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "Epic", "T-Shirt": "" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].tShirtDays).toBeNull();
+    });
+
+    it("should not set tShirtDays on non-Epic rows (Story)", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Done", "Issue Type": "Story", "T-Shirt": "10" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].tShirtDays).toBeUndefined();
+    });
+
+    it("should recognise 'tshirt' as a column alias", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "Epic", tshirt: "5" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].tShirtDays).toBe(5);
+    });
+
+    it("should recognise 't shirt' (with space) as a column alias", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "Epic", "t shirt": "8" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].tShirtDays).toBe(8);
+    });
+
+    it("should set tShirtDays regardless of Issue Type capitalisation (e.g. 'EPIC')", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "EPIC-1", Status: "In Progress", "Issue Type": "EPIC", "T-Shirt": "15" },
+      ]);
+      const result = parseJiraExcel(buf);
+
+      expect(result.issues[0].tShirtDays).toBe(15);
     });
   });
 });

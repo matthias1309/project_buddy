@@ -243,6 +243,23 @@ export function ThresholdsForm({
           </CardContent>
         </Card>
 
+        {/* Epic budget */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Epic budget</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <ThresholdField
+              id="epic_warning_margin_pct"
+              name="epic_warning_margin_pct"
+              label="Warning margin"
+              hint="Percentage points below 100 % at which the epic turns yellow (e.g. 10 → yellow at ≥ 90 %)"
+              defaultValue={initialValues.epic_warning_margin_pct}
+              error={e.epic_warning_margin_pct}
+            />
+          </CardContent>
+        </Card>
+
         <div className="flex items-center gap-3">
           <SaveButton />
           <Button
@@ -262,8 +279,8 @@ export function ThresholdsForm({
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             This will restore all threshold values to their defaults (15% / 25%
-            budget; 5 / 15 days; 85% / 100% utilisation; 10% / 20% scope) and
-            overwrite your current settings.
+            budget; 5 / 15 days; 85% / 100% utilisation; 10% / 20% scope; 10%
+            epic warning margin) and overwrite your current settings.
           </p>
           {resetError && (
             <p className="text-sm text-destructive">{resetError}</p>

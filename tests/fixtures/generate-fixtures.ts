@@ -90,10 +90,48 @@ const SPRINTS_EN = [
 ];
 
 // --- jira-sample.xlsx ---
+// Adds T-Shirt column and two Epic rows so that epic-budget tests have
+// data to work with. ISSUES_EN rows keep a T-Shirt value (ignored for
+// non-Epic types); the mix covers numeric / empty / non-numeric.
+
+const EPICS_EN = [
+  {
+    "Issue Key": "PROJ-E1",
+    Summary: "User Authentication Epic",
+    "Issue Type": "Epic",
+    Status: "In Progress",
+    "Story Points": "",
+    Sprint: "",
+    "Epic Link": "",
+    Assignee: "Alice",
+    Created: "2024-01-01",
+    Resolved: "",
+    "T-Shirt": 10,   // numeric → tShirtDays = 10
+  },
+  {
+    "Issue Key": "PROJ-E2",
+    Summary: "Dashboard Epic",
+    "Issue Type": "Epic",
+    Status: "In Progress",
+    "Story Points": "",
+    Sprint: "",
+    "Epic Link": "",
+    Assignee: "Bob",
+    Created: "2024-01-01",
+    Resolved: "",
+    "T-Shirt": "",   // empty → tShirtDays = null
+  },
+];
+
+const ISSUES_EN_WITH_TSHIRT = ISSUES_EN.map((issue, idx) => ({
+  ...issue,
+  // Mix: first row gets non-numeric, second gets numeric, rest get numeric
+  "T-Shirt": idx === 0 ? "abc" : idx === 1 ? 5 : 3,
+}));
 
 function writeJiraSample() {
   const wb = XLSX.utils.book_new();
-  const wsIssues = XLSX.utils.json_to_sheet(ISSUES_EN);
+  const wsIssues = XLSX.utils.json_to_sheet([...ISSUES_EN_WITH_TSHIRT, ...EPICS_EN]);
   XLSX.utils.book_append_sheet(wb, wsIssues, "Issues");
   const wsSprints = XLSX.utils.json_to_sheet(SPRINTS_EN);
   XLSX.utils.book_append_sheet(wb, wsSprints, "Sprints");

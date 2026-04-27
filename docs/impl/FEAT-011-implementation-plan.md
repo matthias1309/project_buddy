@@ -1,6 +1,6 @@
 # FEAT-011: Epic Budget Tracking — Implementation Plan
 
-**Status:** Phase 1 complete ✓  
+**Status:** Complete ✓ (all 6 phases)  
 **Requirement:** [docs/req/FEAT-011-epic-budget-tracking.md](../req/FEAT-011-epic-budget-tracking.md)  
 **FEAT-007 extension:** [docs/req/FEAT-007-threshold-configuration.md](../req/FEAT-007-threshold-configuration.md)
 
@@ -46,100 +46,55 @@
 
 **Rule:** Write tests first, then implement until green.
 
-### 2.1 Epic calculations — tests first
-- [ ] Create `tests/calculations/epic-calculations.test.ts`
-  - Epic with no OA bookings → 0 h, 0 PT, 0 %, green
-  - Epic with no T-Shirt (`null`) → `plannedDays = null`, `usagePct = null`, `status = 'unknown'`
-  - Epic at exactly 90 % usage (warningMargin = 10) → yellow
-  - Epic at exactly 100 % usage → red
-  - Epic at 89 % (warningMargin = 10) → green
-  - Epic at 101 % → red
-  - Team filter: only bookings from matching team counted
-  - Sprint filter (date range): only bookings within window counted
-  - Month filter: only bookings in that month counted
-  - Two sprints (union of date ranges): both windows included
-  - Sprint + month filter (intersection): only overlap counted
-  - `calcEpicTileSummary`: correct overbooked / nearLimit counts
-  - `filterTimesheets`: team, date-from/to, combined
+### 2.1 Epic calculations — tests first ✓
+- [x] Create `tests/calculations/epic-calculations.test.ts` (25 tests)
 
-### 2.2 Epic calculations — implementation
-- [ ] Create `lib/calculations/epic-calculations.ts`
-  ```typescript
-  filterTimesheets(timesheets, { team?, dateFrom?, dateTo? }): OATimesheet[]
-  calcEpicBudget(epics, allIssues, timesheets, warningMarginPct): EpicBudgetRow[]
-  calcEpicTileSummary(rows): EpicBudgetSummary
-  ```
-  - Aggregation chain: `ticketRef` → Story (`issueKey`) → `epic` (= Epic Issue Key) → Epic → `tShirtDays`
-  - Conversion: `bookedDays = bookedHours / 8`
-  - Status logic: red ≥ 100 %, yellow ≥ (100 - warningMargin) %, green below, unknown if no `plannedDays`
-  - Sort result descending by `usagePct` (nulls last)
+### 2.2 Epic calculations — implementation ✓
+- [x] Create `lib/calculations/epic-calculations.ts`
+  - `filterTimesheets`, `calcEpicBudget`, `calcEpicTileSummary`
 
-### 2.3 Jira parser update
-- [ ] Add `COL_TSHIRT = ["t-shirt", "t shirt", "tshirt"]` to `lib/parsers/jira-parser.ts`
-- [ ] In `parseIssuesSheet`: read T-Shirt column, `parseInt()` the value; `NaN` or absent → `null`
-- [ ] Only set `tShirtDays` on rows where `issueType` matches "epic" (case-insensitive)
-- [ ] Map `tShirtDays` in the import route (`app/api/projects/[id]/import/route.ts`) when writing to DB
-- [ ] Extend `tests/parsers/jira-parser.test.ts`:
-  - Epic row with T-Shirt = "25" → `tShirtDays = 25`
-  - Epic row with T-Shirt = "abc" → `tShirtDays = null`
-  - Epic row with T-Shirt empty → `tShirtDays = null`
-  - Story row → `tShirtDays` not set (undefined)
+### 2.3 Jira parser update ✓
+- [x] `COL_TSHIRT = ["t-shirt", "t shirt", "tshirt"]` added
+- [x] T-Shirt parsed for Epic rows only (case-insensitive); NaN/empty → `null`
+- [x] `types/domain.types.ts`: `tShirtDays?: number | null` (null needed for "no value" case)
+- [x] 7 new T-Shirt tests in `tests/parsers/jira-parser.test.ts`
 
 ---
 
-## Phase 3 — Threshold Extension (FEAT-007)
+## Phase 3 — Threshold Extension (FEAT-007) ✓
 
-- [ ] `lib/validations/thresholds.schema.ts`: add `epicWarningMarginPct: z.coerce.number().min(1).max(99).default(10)`
-- [ ] `lib/actions/threshold.actions.ts`: read/write `epic_warning_margin_pct` from DB
-- [ ] `components/dashboard/thresholds-form.tsx`: add "Epic warning margin %" input field (single value, no red/yellow pair)
-- [ ] `tests/validations/thresholds.schema.test.ts`: add cases for new field (valid, below min, above max)
-
----
-
-## Phase 4 — Dashboard Tile
-
-- [ ] **Fix bug:** add `ticketRef: r.ticket_ref ?? undefined` to OA mapping in `app/(dashboard)/projects/[id]/page.tsx:152-161`
-- [ ] Extend `rawThresholds` mapping to include `epicWarningMarginPct: rawThresholds.epic_warning_margin_pct`
-- [ ] Compute epic tile data in dashboard page (re-uses already-loaded `allIssues` + `allTimesheets`):
-  - Apply active team/sprint/date filters via `filterTimesheets()` before calling `calcEpicBudget()`
-  - Call `calcEpicTileSummary()` for badge counts
-- [ ] Create `components/dashboard/epic-budget-card.tsx`
-  - Props: `projectId`, `overbooked`, `nearLimit`, `hasJiraData`, active filter params (for forwarding)
-  - Link to `/projects/[id]/epics?<active-params>`
-  - Red badge + yellow badge, tile color reflects worst status
-  - Shows "—" when `hasJiraData = false`
-- [ ] Add `<EpicBudgetCard>` to tile grid in `app/(dashboard)/projects/[id]/page.tsx`
+- [x] `lib/validations/thresholds.schema.ts`: `epicWarningMarginPct` field (done in Phase 1)
+- [x] `lib/actions/threshold.actions.ts`: `epic_warning_margin_pct` read/write (done in Phase 1)
+- [x] `components/dashboard/thresholds-form.tsx`: "Epic budget" card with single warning margin field
+- [x] `tests/validations/thresholds.schema.test.ts`: new field cases (done in Phase 1)
 
 ---
 
-## Phase 5 — Epic Detail Page
+## Phase 4 — Dashboard Tile ✓
 
-- [ ] Create `app/(dashboard)/projects/[id]/epics/page.tsx` (Server Component)
-  - `searchParams`: `period?: string`, `team?: string | string[]`, `sprint?: string | string[]`
-  - Data load (parallel `Promise.all`):
-    1. Epics from `jira_issues` where `issue_type ILIKE 'epic'`
-    2. All issues with `epic_link IS NOT NULL` (Stories)
-    3. All timesheets `status IN ('submitted','approved')`
-    4. `project_sprints` (to resolve sprint name → date range)
-    5. `project_thresholds.epic_warning_margin_pct`
-  - Default period: none (all-time) — unlike time page which defaults to current month
-  - Sprint filter: resolve names to date ranges, union of windows, AND with month filter
-  - Reuse `SprintFilter` component and team select from `time/page.tsx`
-  - Table: Epic Key | Epic Name | Planned (PT) | Booked (h) | Booked (PT) | Usage % | Status
-  - Status shown as coloured dot / badge (green / yellow / red / —)
-  - Empty states: no Jira data, no OA data
-  - Back link to dashboard
+- [x] **Bug fixed:** `ticketRef` + `taskCategory` added to OA mapping in `app/(dashboard)/projects/[id]/page.tsx`
+- [x] `tShirtDays` added to Jira issue mapping
+- [x] Epic budget computed with sprint date-range resolution + team filter via `filterTimesheets()`
+- [x] Create `components/dashboard/epic-budget-card.tsx` (link, red/yellow counts, border color, "—" empty state)
+- [x] `<EpicBudgetCard>` added to tile grid, active search params forwarded to epics link
 
 ---
 
-## Phase 6 — Fixtures & Tests
+## Phase 5 — Epic Detail Page ✓
 
-- [ ] `tests/fixtures/generate-fixtures.ts`: add "T-Shirt" column to `jira-sample.xlsx` (mix of numeric values, one empty, one non-numeric)
-- [ ] Regenerate fixtures: `npx tsx tests/fixtures/generate-fixtures.ts`
-- [ ] Add E2E golden path to `e2e/project-flow.spec.ts`:
-  - Epic Budget tile visible after Jira + OA import
-  - Click tile → lands on `/projects/[id]/epics`
-  - Table shows at least one Epic row
+- [x] Create `app/(dashboard)/projects/[id]/epics/page.tsx` (Server Component)
+  - Period / team / sprint filters; sprint union ∩ month intersection logic
+  - Table: Epic Key | Name | Planned (PT) | Booked (h) | Booked (PT) | Usage % | Status dot
+  - Empty states for missing Jira data and missing OA data
+
+---
+
+## Phase 6 — Fixtures & Tests ✓
+
+- [x] `tests/fixtures/generate-fixtures.ts`: T-Shirt column + PROJ-E1/PROJ-E2 Epic rows added to `jira-sample.xlsx`
+- [x] Fixtures regenerated; `jira-sample.xlsx` now has 7 issues (5 + 2 epics)
+- [x] `tests/parsers/jira-parser.test.ts`: length assertions updated, new fixture tShirtDays test
+- [x] `e2e/project-flow.spec.ts`: 3 new E2E tests — tile visible, navigation, table row
 
 ---
 

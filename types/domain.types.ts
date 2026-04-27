@@ -15,7 +15,7 @@ export interface JiraIssue {
   storyPoints?: number;
   sprint?: string;
   epic?: string;
-  tShirtDays?: number;
+  tShirtDays?: number | null;
   assignee?: string;
   createdDate?: Date;
   resolvedDate?: Date;

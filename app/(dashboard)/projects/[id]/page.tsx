@@ -7,6 +7,7 @@ import { calcScheduleKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcResourceKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcScopeKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcStabilityIndex } from "@/lib/calculations/stability-index";
+import { filterTimesheets, calcEpicBudget, calcEpicTileSummary } from "@/lib/calculations/epic-calculations";
 import { StabilityBadge } from "@/components/shared/stability-badge";
 import { SprintFilter } from "@/components/shared/sprint-filter";
 import { TeamFilter } from "@/components/shared/team-filter";
@@ -15,6 +16,7 @@ import { ScheduleCard } from "@/components/dashboard/schedule-card";
 import { ResourceCard } from "@/components/dashboard/resource-card";
 import { ScopeCard } from "@/components/dashboard/scope-card";
 import { TimeAnalysisCard } from "@/components/dashboard/time-analysis-card";
+import { EpicBudgetCard } from "@/components/dashboard/epic-budget-card";
 import { Button } from "@/components/ui/button";
 import type {
   JiraIssue,
@@ -127,6 +129,7 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
     storyPoints: r.story_points ?? undefined,
     sprint: r.sprint ?? undefined,
     epic: r.epic ?? undefined,
+    tShirtDays: r.t_shirt_days ?? undefined,
     assignee: r.assignee ?? undefined,
     createdDate: r.created_date ? new Date(r.created_date) : undefined,
     resolvedDate: r.resolved_date ? new Date(r.resolved_date) : undefined,
@@ -158,6 +161,8 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
     bookedHours:  r.booked_hours ?? undefined,
     periodDate:   r.period_date ? new Date(r.period_date) : undefined,
     team:         r.team ?? undefined,
+    ticketRef:    r.ticket_ref ?? undefined,
+    taskCategory: r.task_category ?? undefined,
   }));
 
   const allTeams = [
@@ -222,6 +227,33 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
         epicWarningMarginPct: rawThresholds.epic_warning_margin_pct ?? 10,
       }
     : DEFAULT_THRESHOLDS;
+
+  // Epic budget tile — resolve sprint filter to date range, then apply to timesheets
+  const hasJiraData = (rawIssues?.length ?? 0) > 0;
+  const epicTimesheets: OATimesheet[] = (() => {
+    let dateFrom: Date | undefined;
+    let dateTo: Date | undefined;
+    if (selectedSprintNames.length > 0) {
+      const matched = allProjectSprints.filter((s) => selectedSprintNames.includes(s.name));
+      const starts = matched.map((s) => new Date(s.start_date)).filter((d) => !isNaN(d.getTime()));
+      const ends = matched.map((s) => new Date(s.end_date)).filter((d) => !isNaN(d.getTime()));
+      if (starts.length > 0) dateFrom = new Date(Math.min(...starts.map((d) => d.getTime())));
+      if (ends.length > 0) dateTo = new Date(Math.max(...ends.map((d) => d.getTime())));
+    }
+    return filterTimesheets(allTimesheets, {
+      team: selectedTeamNames.length === 1 ? selectedTeamNames[0] : undefined,
+      dateFrom,
+      dateTo,
+    });
+  })();
+
+  const epicRows = calcEpicBudget(
+    allIssues.filter((i) => i.issueType?.toLowerCase() === "epic"),
+    allIssues,
+    epicTimesheets,
+    thresholds.epicWarningMarginPct,
+  );
+  const epicSummary = calcEpicTileSummary(epicRows);
 
   // Compute KPIs server-side
   const budgetKPIs = calcBudgetKPIs(budgetEntries, project.total_budget_eur);
@@ -381,6 +413,18 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
           projectId={params.id}
           lastImportDate={lastImportDateStr}
           currentMonthHours={currentMonthHours}
+        />
+
+        <EpicBudgetCard
+          projectId={params.id}
+          overbooked={epicSummary.overbooked}
+          nearLimit={epicSummary.nearLimit}
+          hasJiraData={hasJiraData}
+          searchString={new URLSearchParams(
+            Object.entries(searchParams).flatMap(([k, v]) =>
+              Array.isArray(v) ? v.map((x) => [k, x]) : v ? [[k, v]] : [],
+            ),
+          ).toString()}
         />
       </div>
     </main>
