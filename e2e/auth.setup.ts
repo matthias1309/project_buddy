@@ -16,7 +16,7 @@ setup("authenticate", async ({ page }) => {
   }
 
   await page.goto("/login");
-  await expect(page.locator("h1, h2").filter({ hasText: /PM Dashboard/i })).toBeVisible();
+  await expect(page.getByText(/PM Dashboard/i).first()).toBeVisible();
 
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);

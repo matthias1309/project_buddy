@@ -14,9 +14,14 @@ export function createClient(): SupabaseClient<Database> {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Called from a Server Component — middleware already handles
+            // session refresh, so this error is safe to ignore.
+          }
         },
       },
     }
