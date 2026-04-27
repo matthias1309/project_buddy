@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ThresholdsForm } from "@/components/dashboard/thresholds-form";
+import { SprintManager } from "@/components/dashboard/sprint-manager";
 import type { ThresholdsInput } from "@/lib/validations/thresholds.schema";
 import { DEFAULT_THRESHOLDS } from "@/lib/validations/thresholds.schema";
+import type { ProjectSprint } from "@/types/domain.types";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -18,19 +20,25 @@ export default async function SettingsPage({ params }: Props) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: project }, { data: rawThresholds }] = await Promise.all([
-    supabase
-      .from("projects")
-      .select("id, name, project_number")
-      .eq("id", params.id)
-      .eq("owner_id", user.id)
-      .single(),
-    supabase
-      .from("project_thresholds")
-      .select("*")
-      .eq("project_id", params.id)
-      .single(),
-  ]);
+  const [{ data: project }, { data: rawThresholds }, { data: rawSprints }] =
+    await Promise.all([
+      supabase
+        .from("projects")
+        .select("id, name, project_number")
+        .eq("id", params.id)
+        .eq("owner_id", user.id)
+        .single(),
+      supabase
+        .from("project_thresholds")
+        .select("*")
+        .eq("project_id", params.id)
+        .single(),
+      supabase
+        .from("project_sprints")
+        .select("*")
+        .eq("project_id", params.id)
+        .order("start_date", { ascending: true }),
+    ]);
 
   if (!project) redirect("/");
 
@@ -68,6 +76,11 @@ export default async function SettingsPage({ params }: Props) {
       </div>
 
       <ThresholdsForm projectId={params.id} initialValues={initialValues} />
+
+      <SprintManager
+        projectId={params.id}
+        initialSprints={(rawSprints ?? []) as ProjectSprint[]}
+      />
     </main>
   );
 }

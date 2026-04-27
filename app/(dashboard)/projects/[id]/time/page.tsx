@@ -10,13 +10,18 @@ import {
 } from "@/lib/calculations/time-calculations";
 import { TimeByTeamChart } from "@/components/dashboard/time-by-team-chart";
 import { TimeByCategoryChart } from "@/components/dashboard/time-by-category-chart";
+import { SprintFilter } from "@/components/shared/sprint-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { OATimesheet, JiraIssue } from "@/types/domain.types";
+import type { OATimesheet, JiraIssue, ProjectSprint } from "@/types/domain.types";
 
 interface Props {
   params: { id: string };
-  searchParams: { period?: string | string[]; team?: string | string[] };
+  searchParams: {
+    period?: string | string[];
+    team?:   string | string[];
+    sprint?: string | string[];
+  };
 }
 
 function currentMonthPrefix(): string {
@@ -32,6 +37,23 @@ function recentMonthOptions(count: number): { label: string; value: string }[] {
       value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
       label: d.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
     };
+  });
+}
+
+function filterBySprints(
+  timesheets: OATimesheet[],
+  sprints: Pick<ProjectSprint, "start_date" | "end_date">[],
+): OATimesheet[] {
+  if (sprints.length === 0) return timesheets;
+  return timesheets.filter((t) => {
+    if (!t.periodDate) return false;
+    return sprints.some((s) => {
+      const start = new Date(s.start_date);
+      const end   = new Date(s.end_date);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      return t.periodDate! >= start && t.periodDate! <= end;
+    });
   });
 }
 
@@ -67,7 +89,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: project }, rawTimesheets, { data: rawIssues }] =
+  const [{ data: project }, rawTimesheets, { data: rawIssues }, { data: rawSprints }] =
     await Promise.all([
       supabase
         .from("projects")
@@ -77,6 +99,11 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
         .single(),
       fetchAllTimesheets(supabase, params.id),
       supabase.from("jira_issues").select("*").eq("project_id", params.id),
+      supabase
+        .from("project_sprints")
+        .select("id, name, start_date, end_date")
+        .eq("project_id", params.id)
+        .order("start_date", { ascending: true }),
     ]);
 
   if (!project) redirect("/");
@@ -85,6 +112,19 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
     typeof searchParams.period === "string" ? searchParams.period : currentMonthPrefix();
   const selectedTeam =
     typeof searchParams.team === "string" ? searchParams.team : "";
+  const selectedSprintNames: string[] = Array.isArray(searchParams.sprint)
+    ? searchParams.sprint
+    : searchParams.sprint
+      ? [searchParams.sprint]
+      : [];
+
+  const allSprints = (rawSprints ?? []) as Pick<
+    ProjectSprint,
+    "id" | "name" | "start_date" | "end_date"
+  >[];
+  const selectedSprintObjects = allSprints.filter((s) =>
+    selectedSprintNames.includes(s.name),
+  );
 
   const allTimesheets: OATimesheet[] = rawTimesheets.map((r) => ({
     employeeName: r.employee_name ?? undefined,
@@ -115,6 +155,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
 
   let filtered = filterByPeriod(allTimesheets, period);
   if (selectedTeam) filtered = filtered.filter((t) => t.team === selectedTeam);
+  filtered = filterBySprints(filtered, selectedSprintObjects);
 
   const hoursByTeam = calcHoursByTeam(filtered);
   const hoursByCategory = calcHoursByCategory(filtered);
@@ -168,7 +209,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
 
       {hasTimesheetData && (
         <>
-          {/* Filter bar — plain GET form, works without JS */}
+          {/* Filter bar */}
           <form method="GET" className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <label htmlFor="period" className="text-sm font-medium">
@@ -214,6 +255,10 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
               Apply
             </Button>
           </form>
+
+          {allSprints.length > 0 && (
+            <SprintFilter sprints={allSprints} />
+          )}
 
           {/* Summary line */}
           <p className="text-sm text-muted-foreground">

@@ -159,6 +159,18 @@ export interface BugCostResult {
   hoursPerSP: number | null;
 }
 
+// --- Project sprints ---
+
+export interface ProjectSprint {
+  id:         string;
+  project_id: string;
+  name:       string;
+  start_date: string;
+  end_date:   string;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Project thresholds ---
 
 export interface ProjectThresholds {

@@ -8,6 +8,7 @@ import { calcResourceKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcScopeKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcStabilityIndex } from "@/lib/calculations/stability-index";
 import { StabilityBadge } from "@/components/shared/stability-badge";
+import { SprintFilter } from "@/components/shared/sprint-filter";
 import { BudgetCard } from "@/components/dashboard/budget-card";
 import { ScheduleCard } from "@/components/dashboard/schedule-card";
 import { ResourceCard } from "@/components/dashboard/resource-card";
@@ -20,6 +21,7 @@ import type {
   OATimesheet,
   OAMilestone,
   OABudgetEntry,
+  ProjectSprint,
   ProjectThresholds,
 } from "@/types/domain.types";
 
@@ -42,9 +44,10 @@ const DEFAULT_THRESHOLDS: ProjectThresholds = {
 
 interface Props {
   params: { id: string };
+  searchParams: { sprint?: string | string[] };
 }
 
-export default async function ProjectDashboardPage({ params }: Props) {
+export default async function ProjectDashboardPage({ params, searchParams }: Props) {
   const supabase = createClient();
 
   const {
@@ -62,6 +65,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
     { data: rawBudget },
     { data: rawThresholds },
     { data: rawLastOAImport },
+    { data: rawProjectSprints },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -86,9 +90,24 @@ export default async function ProjectDashboardPage({ params }: Props) {
       .eq("source", "openair")
       .order("imported_at", { ascending: false })
       .limit(1),
+    supabase
+      .from("project_sprints")
+      .select("id, name, start_date, end_date")
+      .eq("project_id", params.id)
+      .order("start_date", { ascending: true }),
   ]);
 
   if (!project) redirect("/");
+
+  const allProjectSprints = (rawProjectSprints ?? []) as Pick<
+    ProjectSprint,
+    "id" | "name" | "start_date" | "end_date"
+  >[];
+  const selectedSprintNames: string[] = Array.isArray(searchParams.sprint)
+    ? searchParams.sprint
+    : searchParams.sprint
+      ? [searchParams.sprint]
+      : [];
 
   // Time Analysis tile data
   const lastOARow = rawLastOAImport?.[0] ?? null;
@@ -115,7 +134,7 @@ export default async function ProjectDashboardPage({ params }: Props) {
     0;
 
   // Map DB rows to domain types
-  const issues: JiraIssue[] = (rawIssues ?? []).map((r) => ({
+  const allIssues: JiraIssue[] = (rawIssues ?? []).map((r) => ({
     issueKey: r.issue_key,
     summary: r.summary ?? undefined,
     issueType: r.issue_type ?? undefined,
@@ -127,6 +146,15 @@ export default async function ProjectDashboardPage({ params }: Props) {
     createdDate: r.created_date ? new Date(r.created_date) : undefined,
     resolvedDate: r.resolved_date ? new Date(r.resolved_date) : undefined,
   }));
+
+  const issues: JiraIssue[] =
+    selectedSprintNames.length > 0
+      ? allIssues.filter(
+          (issue) =>
+            issue.sprint &&
+            selectedSprintNames.some((name) => issue.sprint!.includes(name)),
+        )
+      : allIssues;
 
   const sprints: JiraSprint[] = (rawSprints ?? []).map((r) => ({
     sprintName: r.sprint_name,
@@ -268,6 +296,11 @@ export default async function ProjectDashboardPage({ params }: Props) {
             .
           </p>
         </div>
+      )}
+
+      {/* Sprint filter — only shown when sprints are configured and data exists */}
+      {hasData && allProjectSprints.length > 0 && (
+        <SprintFilter sprints={allProjectSprints} />
       )}
 
       {/* Tile grid — KPI cards only when data exists, Time Analysis always */}

@@ -10,6 +10,9 @@ export const ERRORS = {
   THRESHOLD_INVALID_RANGE: "Red threshold must be stricter than yellow threshold.",
   PROJECT_INVALID_DATE: "Invalid date format (YYYY-MM-DD).",
   IMPORT_NETWORK_ERROR: "Network error — please try again.",
+  SPRINT_NAME_REQUIRED: "Sprint name is required.",
+  SPRINT_END_AFTER_START: "End date must be after start date.",
+  SPRINT_NOT_FOUND: "Sprint not found.",
   GENERIC: "An unexpected error occurred. Please try again.",
 } as const;
 
