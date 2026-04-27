@@ -10,12 +10,13 @@
 - [ ] AC2: Einstellbar: Zeitverzug in Tagen (gelb/rot Schwelle)
 - [ ] AC3: Einstellbar: Ressourcenauslastung % max (gelb/rot)
 - [ ] AC4: Einstellbar: Scope-Wachstum % (gelb/rot)
-- [ ] AC5: Default-Werte vorbefüllt (15%/25% Budget; 5/15 Tage; 85%/100% Auslastung; 10%/20% Scope)
-- [ ] AC6: Roter Schwellenwert muss strenger (größer) als gelber sein — Validierungsfehler sonst
-- [ ] AC7: Nach Speichern: Erfolgsmeldung sichtbar
-- [ ] AC8: Reset-Button setzt auf Default-Werte zurück (mit Bestätigungs-Dialog)
-- [ ] AC9: Änderungen wirken sofort auf Dashboard-Berechnung (kein manuelles Neu-Laden nötig)
-- [ ] AC10: Fehlermeldungen erscheinen inline unter dem betroffenen Feld
+- [ ] AC5: Einstellbar: Epic-Warngrenze % (einzelner Wert — wie viel % Restpuffer löst Gelb aus)
+- [ ] AC6: Default-Werte vorbefüllt (15%/25% Budget; 5/15 Tage; 85%/100% Auslastung; 10%/20% Scope; 10% Epic-Warngrenze)
+- [ ] AC7: Roter Schwellenwert muss strenger (größer) als gelber sein — Validierungsfehler sonst (gilt für Budget, Zeit, Ressourcen, Scope; Epic hat nur einen Wert)
+- [ ] AC8: Nach Speichern: Erfolgsmeldung sichtbar
+- [ ] AC9: Reset-Button setzt auf Default-Werte zurück (mit Bestätigungs-Dialog)
+- [ ] AC10: Änderungen wirken sofort auf Dashboard-Berechnung (kein manuelles Neu-Laden nötig)
+- [ ] AC11: Fehlermeldungen erscheinen inline unter dem betroffenen Feld
 
 ### Gherkin-Szenarien
 
@@ -57,6 +58,18 @@ Feature: Schwellenwert-Konfiguration
     Given ein Projekt mit gespeicherten Schwellenwerten (Budget Gelb: 20%, Rot: 35%)
     When der Nutzer die Settings-Seite öffnet
     Then sind die Felder mit den gespeicherten Werten vorausgefüllt
+
+  Scenario: Epic-Warngrenze speichern
+    Given ein Projektleiter ist auf der Settings-Seite
+    When er die Epic-Warngrenze auf 15% setzt und speichert
+    Then erscheint eine Erfolgsmeldung "Thresholds saved successfully"
+    And die Epic-Budget-Kachel verwendet ab sofort 15% als Warnschwelle
+    And ein Epic mit 87 % Auslastung wird gelb angezeigt (≥ 85 %, also innerhalb der 15 %-Warnzone)
+
+  Scenario: Epic-Warngrenze — Default 10 %
+    Given ein neu angelegtes Projekt ohne gespeicherte Schwellenwerte
+    When der Nutzer die Settings-Seite öffnet
+    Then ist die Epic-Warngrenze mit 10 % vorbefüllt
 ```
 
 ### Technische Hinweise
@@ -64,7 +77,8 @@ Feature: Schwellenwert-Konfiguration
 - Zod-Schema: `/lib/validations/thresholds.schema.ts`
   - `pctField`: `z.coerce.number().min(0).max(200)` (Koerzion für FormData-Strings)
   - `daysField`: `z.coerce.number().int().min(0)`
-  - 4 Refinements: `red > yellow` für jede Dimension
+  - 4 Refinements: `red > yellow` für Budget, Zeit, Ressourcen, Scope
+  - `epicWarningMarginPct`: `z.coerce.number().min(1).max(99)` — kein Rot/Gelb-Paar, nur ein Wert
   - Fehlermeldung bei Verletzung aus zentralem `ERRORS.THRESHOLD_INVALID_RANGE`
 - Server Actions: `/lib/actions/threshold.actions.ts`
   - `updateThresholds(projectId, prevState, formData)` — verwendet mit `useFormState`
@@ -86,3 +100,4 @@ Feature: Schwellenwert-Konfiguration
 | Zeitverzug | 5 Tage | 15 Tage |
 | Ressourcenauslastung | 85 % | 100 % |
 | Scope-Wachstum | 10 % | 20 % |
+| Epic-Warngrenze | 10 % | — (kein separater Rot-Wert; Rot = ≥ 100 % Auslastung) |

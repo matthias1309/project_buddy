@@ -14,6 +14,7 @@ export const ThresholdsSchema = z
     resource_red_pct: pctField,
     scope_yellow_pct: pctField,
     scope_red_pct: pctField,
+    epic_warning_margin_pct: z.coerce.number().min(1).max(99),
   })
   .refine((d) => d.budget_red_pct > d.budget_yellow_pct, {
     message: ERRORS.THRESHOLD_INVALID_RANGE,
@@ -43,4 +44,5 @@ export const DEFAULT_THRESHOLDS: ThresholdsInput = {
   resource_red_pct: 100,
   scope_yellow_pct: 10,
   scope_red_pct: 20,
+  epic_warning_margin_pct: 10,
 };

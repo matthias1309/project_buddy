@@ -19,6 +19,7 @@ const DEFAULT_THRESHOLDS: ProjectThresholds = {
   resourceRedPct: 100,
   scopeYellowPct: 10,
   scopeRedPct: 20,
+  epicWarningMarginPct: 10,
 };
 
 // Build minimal KPI stubs; only the fields the stability index actually reads.

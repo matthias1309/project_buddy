@@ -90,6 +90,7 @@ export type Database = {
           status: string | null
           story_points: number | null
           summary: string | null
+          t_shirt_days: number | null
         }
         Insert: {
           assignee?: string | null
@@ -105,6 +106,7 @@ export type Database = {
           status?: string | null
           story_points?: number | null
           summary?: string | null
+          t_shirt_days?: number | null
         }
         Update: {
           assignee?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           status?: string | null
           story_points?: number | null
           summary?: string | null
+          t_shirt_days?: number | null
         }
         Relationships: [
           {
@@ -381,6 +384,7 @@ export type Database = {
         Row: {
           budget_red_pct: number
           budget_yellow_pct: number
+          epic_warning_margin_pct: number
           id: string
           project_id: string
           resource_red_pct: number
@@ -393,6 +397,7 @@ export type Database = {
         Insert: {
           budget_red_pct?: number
           budget_yellow_pct?: number
+          epic_warning_margin_pct?: number
           id?: string
           project_id: string
           resource_red_pct?: number
@@ -405,6 +410,7 @@ export type Database = {
         Update: {
           budget_red_pct?: number
           budget_yellow_pct?: number
+          epic_warning_margin_pct?: number
           id?: string
           project_id?: string
           resource_red_pct?: number

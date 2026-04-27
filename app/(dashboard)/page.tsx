@@ -27,6 +27,7 @@ const DEFAULT_THRESHOLDS: ProjectThresholds = {
   resourceRedPct: 100,
   scopeYellowPct: 10,
   scopeRedPct: 20,
+  epicWarningMarginPct: 10,
 };
 
 interface ProjectStability {
@@ -211,6 +212,7 @@ export default async function ProjectsPage() {
           resourceRedPct: rawT.resource_red_pct,
           scopeYellowPct: rawT.scope_yellow_pct,
           scopeRedPct: rawT.scope_red_pct,
+          epicWarningMarginPct: rawT.epic_warning_margin_pct ?? 10,
         }
       : DEFAULT_THRESHOLDS;
 

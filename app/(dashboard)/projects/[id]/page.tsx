@@ -41,6 +41,7 @@ const DEFAULT_THRESHOLDS: ProjectThresholds = {
   resourceRedPct: 100,
   scopeYellowPct: 10,
   scopeRedPct: 20,
+  epicWarningMarginPct: 10,
 };
 
 interface Props {
@@ -218,6 +219,7 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
         resourceRedPct: rawThresholds.resource_red_pct,
         scopeYellowPct: rawThresholds.scope_yellow_pct,
         scopeRedPct: rawThresholds.scope_red_pct,
+        epicWarningMarginPct: rawThresholds.epic_warning_margin_pct ?? 10,
       }
     : DEFAULT_THRESHOLDS;
 

@@ -15,6 +15,7 @@ export interface JiraIssue {
   storyPoints?: number;
   sprint?: string;
   epic?: string;
+  tShirtDays?: number;
   assignee?: string;
   createdDate?: Date;
   resolvedDate?: Date;
@@ -182,4 +183,24 @@ export interface ProjectThresholds {
   resourceRedPct: number;
   scopeYellowPct: number;
   scopeRedPct: number;
+  epicWarningMarginPct: number;
+}
+
+// --- Epic budget (FEAT-011) ---
+
+export type EpicBudgetStatus = 'red' | 'yellow' | 'green' | 'unknown';
+
+export interface EpicBudgetRow {
+  epicKey: string;
+  epicName: string | null;
+  plannedDays: number | null;
+  bookedHours: number;
+  bookedDays: number;
+  usagePct: number | null;
+  status: EpicBudgetStatus;
+}
+
+export interface EpicBudgetSummary {
+  overbooked: number;
+  nearLimit: number;
 }

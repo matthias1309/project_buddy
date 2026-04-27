@@ -11,6 +11,7 @@ const validInput = {
   resource_red_pct: "100",
   scope_yellow_pct: "10",
   scope_red_pct: "20",
+  epic_warning_margin_pct: "10",
 };
 
 describe("ThresholdsSchema", () => {
@@ -134,6 +135,7 @@ describe("ThresholdsSchema", () => {
         resource_red_pct: "80",
         scope_yellow_pct: "20",
         scope_red_pct: "5",
+        epic_warning_margin_pct: "10",
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -180,6 +182,29 @@ describe("ThresholdsSchema", () => {
     });
   });
 
+  describe("epic_warning_margin_pct", () => {
+    it("should accept valid margin values", () => {
+      const result = ThresholdsSchema.safeParse({ ...validInput, epic_warning_margin_pct: "15" });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.epic_warning_margin_pct).toBe(15);
+    });
+
+    it("should reject value below minimum (0)", () => {
+      const result = ThresholdsSchema.safeParse({ ...validInput, epic_warning_margin_pct: "0" });
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject value above maximum (100)", () => {
+      const result = ThresholdsSchema.safeParse({ ...validInput, epic_warning_margin_pct: "100" });
+      expect(result.success).toBe(false);
+    });
+
+    it("should accept boundary values 1 and 99", () => {
+      expect(ThresholdsSchema.safeParse({ ...validInput, epic_warning_margin_pct: "1" }).success).toBe(true);
+      expect(ThresholdsSchema.safeParse({ ...validInput, epic_warning_margin_pct: "99" }).success).toBe(true);
+    });
+  });
+
   describe("DEFAULT_THRESHOLDS", () => {
     it("should be a valid ThresholdsInput", () => {
       const result = ThresholdsSchema.safeParse(DEFAULT_THRESHOLDS);
@@ -195,6 +220,7 @@ describe("ThresholdsSchema", () => {
       expect(DEFAULT_THRESHOLDS.resource_red_pct).toBe(100);
       expect(DEFAULT_THRESHOLDS.scope_yellow_pct).toBe(10);
       expect(DEFAULT_THRESHOLDS.scope_red_pct).toBe(20);
+      expect(DEFAULT_THRESHOLDS.epic_warning_margin_pct).toBe(10);
     });
   });
 });

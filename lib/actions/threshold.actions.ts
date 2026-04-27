@@ -42,6 +42,7 @@ export async function updateThresholds(
     resource_red_pct: formData.get("resource_red_pct"),
     scope_yellow_pct: formData.get("scope_yellow_pct"),
     scope_red_pct: formData.get("scope_red_pct"),
+    epic_warning_margin_pct: formData.get("epic_warning_margin_pct"),
   };
 
   const parsed = ThresholdsSchema.safeParse(raw);

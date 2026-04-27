@@ -52,6 +52,7 @@ export default async function SettingsPage({ params }: Props) {
         resource_red_pct: rawThresholds.resource_red_pct,
         scope_yellow_pct: rawThresholds.scope_yellow_pct,
         scope_red_pct: rawThresholds.scope_red_pct,
+        epic_warning_margin_pct: rawThresholds.epic_warning_margin_pct ?? 10,
       }
     : DEFAULT_THRESHOLDS;
 
