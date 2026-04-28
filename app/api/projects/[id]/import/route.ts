@@ -37,6 +37,7 @@ async function insertJira(
     issue_type: i.issueType ?? null,
     status: i.status,
     story_points: i.storyPoints ?? null,
+    t_shirt_days: i.tShirtDays ?? null,
     sprint: i.sprint ?? null,
     epic: i.epic ?? null,
     assignee: i.assignee ?? null,
