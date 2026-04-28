@@ -43,6 +43,7 @@ graph TD
     import/page.tsx               Import UI (client components)
     settings/page.tsx             Threshold configuration (Server Component)
     time/page.tsx                 Time Analysis page (Server Component)
+    epics/page.tsx                Epic Budget detail page (Server Component)
 
 /components
   /ui                             shadcn/ui base components (do not edit)
@@ -54,6 +55,7 @@ graph TD
     resource-card.tsx             Resource utilisation bar chart (Recharts)
     scope-card.tsx                Scope KPI card with velocity mini-chart
     time-analysis-card.tsx        Time Analysis tile: last OA import date + current-month hours; links to /time
+    epic-budget-card.tsx          Epic Budget tile: overbooked/near-limit counts with coloured badges; links to /epics
     thresholds-form.tsx           Threshold settings form with reset dialog
     time-by-team-chart.tsx        Horizontal bar chart: hours per team (Recharts)
     time-by-category-chart.tsx    Horizontal bar chart: hours per task category (Recharts)
@@ -104,6 +106,8 @@ graph TD
   stability-index.ts              calcStabilityIndex → StabilityResult
   time-calculations.ts            calcHoursByTeam, calcHoursByCategory,
                                   calcEpicHours, calcBugCost
+  epic-calculations.ts            filterTimesheets, calcEpicBudget,
+                                  calcEpicTileSummary
 
 /lib/supabase
   paginate.ts                     fetchAllTimesheets, fetchAllTimesheetsForProjects
@@ -120,7 +124,7 @@ graph TD
 ```
 
 **Parser design:**  
-Both parsers accept a `Buffer`, use SheetJS to read the workbook, map column headers case-insensitively to domain fields, skip empty rows, and collect parse errors by row number. Unknown columns are silently ignored.
+Both parsers accept a `Buffer`, use SheetJS to read the workbook, map column headers case-insensitively to domain fields, skip empty rows, and collect parse errors by row number. Unknown columns are silently ignored. Column name matching additionally normalizes en-dashes (–) and em-dashes (—) to a regular hyphen before comparison, because Excel auto-correct can silently replace hyphens in header cells (e.g. "T–Shirt" instead of "T-Shirt").
 
 The OpenAir parser supports two export formats:
 - **Old format**: `Mitarbeiter / Rolle / Phase / Geplante Stunden / Gebuchte Stunden / Datum` — multi-block sheets with separate timesheet, budget, and milestone sections
@@ -138,6 +142,8 @@ All KPI functions are pure — they accept domain arrays and return a typed resu
 
 `time-calculations.ts` contains four additional pure functions for the Time Analysis page: hours grouped by team, by category, by Jira ticket reference, and bug cost (hours on Bug-type issues relative to story points). `calcEpicHours` returns `EpicHoursEntry` objects which include `issueType` and `summaryPreview` (first 25 characters of the Jira summary, truncated with `…`) alongside hours and story points.
 
+`epic-calculations.ts` contains three pure functions for the Epic Budget feature: `filterTimesheets` applies team/date-range filters to a timesheet array; `calcEpicBudget` aggregates OA hours to Epics via the `ticketRef → Story → Epic Link → Epic → t_shirt_days` chain and returns status-annotated rows; `calcEpicTileSummary` reduces rows to `{ overbooked, nearLimit }` counts for the dashboard tile.
+
 ---
 
 ## Level 2 — Supabase Schema
@@ -151,4 +157,9 @@ All KPI functions are pure — they accept domain arrays and return a typed resu
 | `oa_timesheets` | Parsed OpenAir timesheet rows |
 | `oa_milestones` | Parsed OpenAir milestones |
 | `oa_budget_entries` | Parsed OpenAir budget rows |
-| `project_thresholds` | One row per project; created with defaults on project creation |
+| `project_thresholds` | One row per project; created with defaults on project creation; includes `epic_warning_margin_pct` (default 10) |
+| `project_sprints` | Configured sprint windows per project (name, start_date, end_date); used to resolve sprint filter → date range |
+
+**Notable column additions (FEAT-011):**  
+`jira_issues.t_shirt_days integer` — planned effort in person-days; set only on Epic rows during import; `null` when absent or non-numeric.  
+`project_thresholds.epic_warning_margin_pct integer` — percentage points below 100 % at which an Epic turns yellow (default 10).

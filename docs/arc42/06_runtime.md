@@ -20,11 +20,11 @@ sequenceDiagram
     API->>API: Check file size ≤ 10 MB
     API->>API: Check file extension (.xlsx / .xls)
     API->>Parser: parseJiraExcel(buffer)
-    Parser->>Parser: Read workbook with SheetJS<br/>Map columns case-insensitively<br/>Skip empty rows<br/>Collect ParseErrors by row
+    Parser->>Parser: Read workbook with SheetJS<br/>Normalize dash variants in headers (en-dash → hyphen)<br/>Map columns case-insensitively<br/>Skip empty rows<br/>Parse T-Shirt column → t_shirt_days (Epic rows only)<br/>Collect ParseErrors by row
     Parser-->>API: JiraParseResult { issues, sprints, errors, warnings }
     API->>DB: DELETE jira_issues WHERE project_id=?
     API->>DB: DELETE jira_sprints WHERE project_id=?
-    API->>DB: INSERT jira_issues (batches of 500)
+    API->>DB: INSERT jira_issues incl. t_shirt_days (batches of 500)
     API->>DB: INSERT jira_sprints (batches of 500)
     API->>DB: INSERT import_log { status, records_imported, … }
     API-->>UI: { success, recordsImported, errors, warnings }
@@ -55,7 +55,7 @@ sequenceDiagram
     RSC->>DB: getUser() — verify session
     DB-->>RSC: user or null
     Note over RSC: Redirect to /login if no session
-    RSC->>DB: SELECT project, jira_issues, jira_sprints,<br/>oa_milestones, oa_budget_entries,<br/>project_thresholds,<br/>import_logs (last OA import) (parallel Promise.all)
+    RSC->>DB: SELECT project, jira_issues (incl. t_shirt_days), jira_sprints,<br/>oa_milestones, oa_budget_entries, project_thresholds,<br/>import_logs (last OA import), project_sprints (parallel Promise.all)
     RSC->>DB: fetchAllTimesheets() — paginated (see ADR-005)
     DB-->>RSC: All rows (RLS enforced)
     RSC->>Calc: calcBudgetKPIs(budgetEntries, totalBudget)
@@ -65,12 +65,16 @@ sequenceDiagram
     RSC->>Calc: calcStabilityIndex(kpis, thresholds)
     Calc-->>RSC: StabilityResult + KPI objects
     RSC->>RSC: Sum booked_hours for current calendar month (from timesheets)
-    RSC->>Browser: Full HTML (KPI cards + Time Analysis tile, stability badge)
+    RSC->>Calc: filterTimesheets(allTimesheets, activeFilters)
+    RSC->>Calc: calcEpicBudget(epics, allIssues, filtered, warningMarginPct)
+    RSC->>Calc: calcEpicTileSummary(epicRows)
+    Calc-->>RSC: EpicBudgetSummary { overbooked, nearLimit }
+    RSC->>Browser: Full HTML (KPI cards + Time Analysis tile + Epic Budget tile, stability badge)
     Browser->>PM: Rendered dashboard (target: < 2 s)
 ```
 
 **Key invariants:**
-- All eight database queries (including the `import_logs` lookup for the Time Analysis tile) run in a single `Promise.all` — no sequential round-trips
+- All nine database queries (including `project_sprints` for sprint-filter resolution and `import_logs` for the Time Analysis tile) run in a single `Promise.all` — no sequential round-trips
 - KPI computation is synchronous and happens in the same server request; no separate API call is needed
 - RLS ensures that even if the wrong `[id]` is requested, Supabase returns empty results rather than another user's data
 - The Time Analysis tile is always rendered; it shows `—` when no OpenAir import exists and `0 h` when imported but no bookings fall in the current month
@@ -136,7 +140,7 @@ sequenceDiagram
 
     PM->>Form: Edit threshold values, click Save
     Form->>SA: formAction(formData)
-    SA->>SA: ThresholdsSchema.safeParse(formData)<br/>Validate all 8 fields + 4 refinements
+    SA->>SA: ThresholdsSchema.safeParse(formData)<br/>Validate all 9 fields + 4 refinements (incl. epic_warning_margin_pct)
     alt Validation fails
         SA-->>Form: { errors: { budget_red_pct: "…" } }
         Form->>PM: Inline error messages per field
@@ -150,3 +154,42 @@ sequenceDiagram
         Form->>PM: "Thresholds saved successfully" banner
     end
 ```
+
+---
+
+## Scenario 5 — Epic Budget Page Load
+
+A project manager navigates to the Epic Budget detail page with an optional team/sprint/month filter. All data fetching and computation happens server-side.
+
+```mermaid
+sequenceDiagram
+    actor PM as Project Manager
+    participant Browser
+    participant RSC as EpicBudgetPage<br/>(React Server Component)
+    participant Paginate as paginate.ts
+    participant DB as Supabase (PostgreSQL)
+    participant Calc as epic-calculations.ts
+
+    PM->>Browser: Navigate to /projects/[id]/epics?team=Team+Alpha
+    Browser->>RSC: HTTP GET (SSR request)
+    RSC->>DB: getUser() — verify session
+    RSC->>DB: SELECT project, jira_issues (all),<br/>project_sprints, project_thresholds.epic_warning_margin_pct<br/>(parallel Promise.all)
+    RSC->>Paginate: fetchAllTimesheets(supabase, projectId)
+    DB-->>RSC: All rows (RLS enforced)
+    RSC->>RSC: Split issues: epics (issue_type = 'Epic') / allIssues
+    RSC->>RSC: Resolve sprint filter → date range (union of selected sprints)
+    RSC->>RSC: Intersect sprint range with month filter (if both active)
+    RSC->>Calc: filterTimesheets(allTimesheets, { team, dateFrom, dateTo })
+    Calc-->>RSC: filtered timesheets
+    RSC->>Calc: calcEpicBudget(epics, allIssues, filtered, warningMarginPct)
+    Calc-->>RSC: EpicBudgetRow[] sorted by usagePct desc (nulls last)
+    RSC->>Browser: Full HTML (filter form + epic table with status dots)
+    Browser->>PM: Rendered page
+```
+
+**Key invariants:**
+- A single `Promise.all` loads all DB data; `fetchAllTimesheets` runs in parallel via pagination
+- `filterTimesheets` is a pure function — filtering happens in the calculation layer, not in the DB query
+- Sprint filter uses the union of selected sprint date ranges (min start → max end); when combined with a month filter, the intersection is computed before passing `dateFrom`/`dateTo`
+- Rows with `t_shirt_days = null` receive `status = 'unknown'` and are sorted to the bottom of the table
+- The page works without JavaScript (GET form for filters, bookmarkable URLs)
