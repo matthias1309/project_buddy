@@ -58,6 +58,12 @@
 - [x] T-Shirt parsed for Epic rows only (case-insensitive); NaN/empty → `null`
 - [x] `types/domain.types.ts`: `tShirtDays?: number | null` (null needed for "no value" case)
 - [x] 7 new T-Shirt tests in `tests/parsers/jira-parser.test.ts`
+- [x] **Post-ship fix:** `normalizeDashes()` added to `findColumnIndex` — Excel auto-correct
+  replaces the hyphen in "T-Shirt" with an en-dash (–, U+2013); normalization prevents
+  silent column-not-found for all column candidates globally
+- [x] **Post-ship fix:** `t_shirt_days` field was missing from the `insertJira()` INSERT
+  mapping in `app/api/projects/[id]/import/route.ts`; parser read the value correctly
+  but it was never persisted to the DB
 
 ---
 

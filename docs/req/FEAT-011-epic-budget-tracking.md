@@ -233,10 +233,17 @@ Migration file: `/supabase/migrations/YYYYMMDD_add_epic_budget_fields.sql`
 - Parse `"T-Shirt"` column on rows where `issue_type = 'Epic'`:
   - Coerce value to integer via `parseInt()`.
   - If result is `NaN` or column is absent → store `null`.
+  - **Column name matching is dash-agnostic:** Excel auto-correct can replace the
+    hyphen in "T-Shirt" with an en-dash (–, U+2013) or em-dash (—, U+2014).
+    `findColumnIndex` normalizes all dash variants to `-` before comparing, so
+    "T–Shirt", "T—Shirt", and "T-Shirt" all match.
 - Parse `"Epic Link"` column on rows where `issue_type = 'Story'` (and other non-Epic types):
   - Store trimmed string value.
   - If column absent or empty → store `null`.
 - Epics themselves must not have `epic_link` set (leave `null`).
+- `t_shirt_days` must be included in the `insertJira()` INSERT mapping in
+  `app/api/projects/[id]/import/route.ts` — omitting it causes values to be parsed
+  correctly but silently dropped before reaching the database.
 
 ### Calculation module (`lib/calculations/epic-calculations.ts`)
 
