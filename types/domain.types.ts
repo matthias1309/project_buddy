@@ -153,6 +153,7 @@ export interface EpicHoursEntry {
   storyPoints: number | null;
   issueType: string | null;
   summaryPreview: string | null;
+  isDone: boolean | null;
 }
 
 export interface BugCostResult {

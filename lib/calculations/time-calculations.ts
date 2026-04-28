@@ -39,6 +39,8 @@ export function calcEpicHours(
     hoursMap.set(t.ticketRef, (hoursMap.get(t.ticketRef) ?? 0) + (t.bookedHours ?? 0));
   }
 
+  const DONE_STATUSES = new Set(["done", "released", "cancel", "in approval"]);
+
   return Array.from(hoursMap.entries())
     .map(([ref, hours]) => {
       const linked = issueMap.get(ref);
@@ -52,6 +54,9 @@ export function calcEpicHours(
           ? full.length > 25
             ? full.slice(0, 25) + "…"
             : full
+          : null,
+        isDone: linked
+          ? DONE_STATUSES.has(linked.status.toLowerCase())
           : null,
       };
     })

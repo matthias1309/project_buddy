@@ -121,6 +121,21 @@ When the Category Breakdown chart renders
 Then it shows hours split by: Regular Meeting, Development, Steuerung, Organization
 And the breakdown is shown per team when a specific team is selected
 And totals are shown when "All teams" is selected
+
+Given the user is on the Category Breakdown section
+When the chart first renders
+Then the bar chart view is active by default
+And a toggle control is visible to switch to pie chart view
+
+Given the user clicks the pie chart toggle
+When the Category Breakdown re-renders
+Then a pie chart displays the same category data
+And each slice is labelled with category name and hours
+And a toggle control is visible to switch back to bar chart view
+
+Given the user clicks the bar chart toggle
+When the Category Breakdown re-renders
+Then the horizontal bar chart is shown again
 ```
 
 #### Section 3 — Epic Hours Table (requires both OpenAir + Jira data)
@@ -128,7 +143,7 @@ And totals are shown when "All teams" is selected
 ```gherkin
 Given timesheet entries with a ticket_ref and matching jira_issues rows
 When the Epic Hours table renders
-Then each row shows: Epic / Ticket, Issue Type, Summary (first 25 chars), Booked Hours (OA), Story Points (Jira)
+Then each row shows: Epic / Ticket, Issue Type, Summary (first 25 chars), Booked Hours (OA), Story Points (Jira), Done
 
 Given a Summary value is longer than 25 characters
 When the Epic Hours table renders
@@ -140,7 +155,31 @@ Then the table shows a hint "Jira import required for epic mapping"
 
 Given a ticket_ref that matches no jira_issues row
 When the Epic Hours table renders
-Then the row appears with ticket_ref as label and "—" in Issue Type, Summary, and Story Points columns
+Then the row appears with ticket_ref as label and "—" in Issue Type, Summary, Story Points, and Done columns
+
+Given a Jira issue with status = "Done"
+When the Epic Hours table renders
+Then the Done column for that row shows a checkmark (✓)
+
+Given a Jira issue with status = "Released"
+When the Epic Hours table renders
+Then the Done column for that row shows a checkmark (✓)
+
+Given a Jira issue with status = "Cancel"
+When the Epic Hours table renders
+Then the Done column for that row shows a checkmark (✓)
+
+Given a Jira issue with status = "In approval"
+When the Epic Hours table renders
+Then the Done column for that row shows a checkmark (✓)
+
+Given a Jira issue with status = "In Progress"
+When the Epic Hours table renders
+Then the Done column for that row shows "–" (not done indicator)
+
+Given done status matching is case-insensitive (e.g. "DONE", "done", "released")
+When calcEpicHours processes the issue
+Then isDone is true regardless of case
 ```
 
 #### Section 4 — Bug Cost Indicator
@@ -148,7 +187,8 @@ Then the row appears with ticket_ref as label and "—" in Issue Type, Summary, 
 ```gherkin
 Given timesheet entries linked to Jira issues of type "Bug"
 When the Bug Cost indicator renders
-Then it shows: total hours booked to bugs, hours per story point (total_bug_hours / total_sp)
+Then it shows total hours booked to bugs
+And the "h / story point" metric is NOT shown
 
 Given no bug-type issues are linked
 When the Bug Cost indicator renders
@@ -199,10 +239,11 @@ ALTER TABLE oa_timesheets
 - New file `lib/calculations/time-calculations.ts` with pure functions:
   - `calcHoursByTeam(entries)` → `{ team: string; hours: number }[]`
   - `calcHoursByCategory(entries)` → `{ category: string; hours: number }[]`
-  - `calcEpicHours(timesheets, jiraIssues)` → `{ ref: string; hours: number; storyPoints: number | null; issueType: string | null; summaryPreview: string | null }[]`
+  - `calcEpicHours(timesheets, jiraIssues)` → `{ ref: string; hours: number; storyPoints: number | null; issueType: string | null; summaryPreview: string | null; isDone: boolean | null }[]`
     - `summaryPreview` = first 25 characters of `summary` followed by `…` if the full summary exceeds 25 characters, otherwise the full summary.
-    - `issueType` and `summaryPreview` are `null` when no matching Jira issue is found (rendered as `—` in the table).
-  - `calcBugCost(timesheets, jiraIssues)` → `{ totalHours: number; hoursPerSP: number | null }`
+    - `issueType`, `summaryPreview`, and `isDone` are `null` when no matching Jira issue is found (rendered as `—` in the table).
+    - `isDone` is `true` when the matched issue's status is one of: `"done"`, `"released"`, `"cancel"`, `"in approval"` (case-insensitive). Otherwise `false`.
+  - `calcBugCost(timesheets, jiraIssues)` → `{ totalHours: number; hoursPerSP: number | null }` (hoursPerSP is calculated but not displayed in the UI)
 - All functions are pure (no DB calls, no side effects) and covered by unit tests ≥ 95%.
 
 ### RLS

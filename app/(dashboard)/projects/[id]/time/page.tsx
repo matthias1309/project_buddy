@@ -335,6 +335,7 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
                         <th className="pb-2 font-medium">Summary</th>
                         <th className="pb-2 text-right font-medium">Booked Hours</th>
                         <th className="pb-2 text-right font-medium">Story Points</th>
+                        <th className="pb-2 text-center font-medium">Done</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -352,6 +353,9 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
                           </td>
                           <td className="py-1.5 text-right tabular-nums text-muted-foreground">
                             {row.storyPoints !== null ? row.storyPoints : "—"}
+                          </td>
+                          <td className="py-1.5 text-center text-xs">
+                            {row.isDone === null ? "—" : row.isDone ? "✓" : "–"}
                           </td>
                         </tr>
                       ))}
@@ -373,19 +377,9 @@ export default async function TimeAnalysisPage({ params, searchParams }: Props) 
                   No bug bookings in this period.
                 </p>
               ) : (
-                <div className="flex gap-8">
-                  <div>
-                    <p className="text-2xl font-bold">{fmtH(bugCost.totalHours)}</p>
-                    <p className="text-xs text-muted-foreground">Hours on bugs</p>
-                  </div>
-                  {bugCost.hoursPerSP !== null && (
-                    <div>
-                      <p className="text-2xl font-bold">
-                        {bugCost.hoursPerSP.toFixed(2)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">h / story point</p>
-                    </div>
-                  )}
+                <div>
+                  <p className="text-2xl font-bold">{fmtH(bugCost.totalHours)}</p>
+                  <p className="text-xs text-muted-foreground">Hours on bugs</p>
                 </div>
               )}
             </CardContent>

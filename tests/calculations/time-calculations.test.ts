@@ -244,6 +244,73 @@ describe("calcEpicHours", () => {
     );
     expect(result[0].summaryPreview).toBeNull();
   });
+
+  it("sets isDone to null when no matching JiraIssue exists", () => {
+    const result = calcEpicHours([ts({ ticketRef: "XYZ-99", bookedHours: 4 })], []);
+    expect(result[0].isDone).toBeNull();
+  });
+
+  it("sets isDone to true when matched issue status is 'Done'", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", status: "Done" })],
+    );
+    expect(result[0].isDone).toBe(true);
+  });
+
+  it("sets isDone to true when matched issue status is 'Released'", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", status: "Released" })],
+    );
+    expect(result[0].isDone).toBe(true);
+  });
+
+  it("sets isDone to true when matched issue status is 'Cancel'", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", status: "Cancel" })],
+    );
+    expect(result[0].isDone).toBe(true);
+  });
+
+  it("sets isDone to true when matched issue status is 'In approval'", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", status: "In approval" })],
+    );
+    expect(result[0].isDone).toBe(true);
+  });
+
+  it("sets isDone to false when matched issue status is 'In Progress'", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", status: "In Progress" })],
+    );
+    expect(result[0].isDone).toBe(false);
+  });
+
+  it("sets isDone to false when matched issue status is 'Open'", () => {
+    const result = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", status: "Open" })],
+    );
+    expect(result[0].isDone).toBe(false);
+  });
+
+  it("isDone matching is case-insensitive", () => {
+    const resultDone = calcEpicHours(
+      [ts({ ticketRef: "ABC-1", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-1", status: "DONE" })],
+    );
+    expect(resultDone[0].isDone).toBe(true);
+
+    const resultReleased = calcEpicHours(
+      [ts({ ticketRef: "ABC-2", bookedHours: 4 })],
+      [issue({ issueKey: "ABC-2", status: "RELEASED" })],
+    );
+    expect(resultReleased[0].isDone).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
