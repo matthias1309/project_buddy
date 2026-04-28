@@ -12,6 +12,8 @@ export interface JiraIssue {
   summary?: string;
   issueType?: string;
   status: string;
+  priority?: string;
+  team?: string;
   storyPoints?: number;
   sprint?: string;
   epic?: string;
@@ -185,6 +187,47 @@ export interface ProjectThresholds {
   scopeYellowPct: number;
   scopeRedPct: number;
   epicWarningMarginPct: number;
+  qualityLeadCriticalDays: number;
+  qualityLeadMajorDays: number;
+  qualityLeadMinorDays: number;
+  qualityLeadTrivialDays: number;
+}
+
+// --- Quality (FEAT-012) ---
+
+export type BugPriority = "Critical" | "Major" | "Minor" | "Trivial";
+
+export interface OpenBugsByPriority {
+  critical: number;
+  major: number;
+  minor: number;
+  trivial: number;
+  unknown: number;
+}
+
+export interface AvgHoursByPriority {
+  critical: number | null;
+  major: number | null;
+  minor: number | null;
+  trivial: number | null;
+  unknown: number | null;
+}
+
+export interface BugLeadTimeRow {
+  issueKey: string;
+  summary: string | undefined;
+  priority: BugPriority | null;
+  createdDate: Date;
+  resolvedDate: Date;
+  leadTimeDays: number;
+  leadTimeStatus: "red" | "green" | "none";
+}
+
+export interface QualityThresholds {
+  criticalDays: number;
+  majorDays: number;
+  minorDays: number;
+  trivialDays: number;
 }
 
 // --- Epic budget (FEAT-011) ---

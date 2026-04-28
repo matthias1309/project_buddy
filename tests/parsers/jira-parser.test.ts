@@ -406,4 +406,70 @@ describe("jiraParser", () => {
       expect(result.issues[0].tShirtDays).toBe(15);
     });
   });
+
+  describe("Priority column parsing", () => {
+    it("should parse known Priority values", () => {
+      for (const priority of ["Critical", "Major", "Minor", "Trivial"]) {
+        const buf = buildBuffer([
+          { "Issue Key": "PROJ-1", Status: "Open", Priority: priority },
+        ]);
+        const result = parseJiraExcel(buf);
+        expect(result.issues[0].priority).toBe(priority);
+      }
+    });
+
+    it("should return undefined priority when column is absent", () => {
+      const buf = buildBuffer([{ "Issue Key": "PROJ-1", Status: "Open" }]);
+      const result = parseJiraExcel(buf);
+      expect(result.issues[0].priority).toBeUndefined();
+    });
+
+    it("should return undefined priority when cell is empty", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Open", Priority: "" },
+      ]);
+      const result = parseJiraExcel(buf);
+      expect(result.issues[0].priority).toBeUndefined();
+    });
+
+    it("should parse Priority on all issue types, not just Bugs", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Open", "Issue Type": "Story", Priority: "Major" },
+      ]);
+      const result = parseJiraExcel(buf);
+      expect(result.issues[0].priority).toBe("Major");
+    });
+  });
+
+  describe("Teams column parsing", () => {
+    it("should parse the Teams column value", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Open", Teams: "Team Alpha" },
+      ]);
+      const result = parseJiraExcel(buf);
+      expect(result.issues[0].team).toBe("Team Alpha");
+    });
+
+    it("should return undefined team when column is absent", () => {
+      const buf = buildBuffer([{ "Issue Key": "PROJ-1", Status: "Open" }]);
+      const result = parseJiraExcel(buf);
+      expect(result.issues[0].team).toBeUndefined();
+    });
+
+    it("should return undefined team when cell is empty", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Open", Teams: "" },
+      ]);
+      const result = parseJiraExcel(buf);
+      expect(result.issues[0].team).toBeUndefined();
+    });
+
+    it("should match 'team' (singular, lowercase) as column alias", () => {
+      const buf = buildBuffer([
+        { "Issue Key": "PROJ-1", Status: "Open", team: "Team Beta" },
+      ]);
+      const result = parseJiraExcel(buf);
+      expect(result.issues[0].team).toBe("Team Beta");
+    });
+  });
 });

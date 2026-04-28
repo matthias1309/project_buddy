@@ -84,6 +84,7 @@ export type Database = {
           import_log_id: string | null
           issue_key: string
           issue_type: string | null
+          priority: string | null
           project_id: string
           resolved_date: string | null
           sprint: string | null
@@ -91,6 +92,7 @@ export type Database = {
           story_points: number | null
           summary: string | null
           t_shirt_days: number | null
+          team: string | null
         }
         Insert: {
           assignee?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           import_log_id?: string | null
           issue_key: string
           issue_type?: string | null
+          priority?: string | null
           project_id: string
           resolved_date?: string | null
           sprint?: string | null
@@ -107,6 +110,7 @@ export type Database = {
           story_points?: number | null
           summary?: string | null
           t_shirt_days?: number | null
+          team?: string | null
         }
         Update: {
           assignee?: string | null
@@ -116,6 +120,7 @@ export type Database = {
           import_log_id?: string | null
           issue_key?: string
           issue_type?: string | null
+          priority?: string | null
           project_id?: string
           resolved_date?: string | null
           sprint?: string | null
@@ -123,6 +128,7 @@ export type Database = {
           story_points?: number | null
           summary?: string | null
           t_shirt_days?: number | null
+          team?: string | null
         }
         Relationships: [
           {
@@ -387,6 +393,10 @@ export type Database = {
           epic_warning_margin_pct: number
           id: string
           project_id: string
+          quality_lead_critical_days: number
+          quality_lead_major_days: number
+          quality_lead_minor_days: number
+          quality_lead_trivial_days: number
           resource_red_pct: number
           resource_yellow_pct: number
           schedule_red_days: number
@@ -400,6 +410,10 @@ export type Database = {
           epic_warning_margin_pct?: number
           id?: string
           project_id: string
+          quality_lead_critical_days?: number
+          quality_lead_major_days?: number
+          quality_lead_minor_days?: number
+          quality_lead_trivial_days?: number
           resource_red_pct?: number
           resource_yellow_pct?: number
           schedule_red_days?: number
@@ -413,6 +427,10 @@ export type Database = {
           epic_warning_margin_pct?: number
           id?: string
           project_id?: string
+          quality_lead_critical_days?: number
+          quality_lead_major_days?: number
+          quality_lead_minor_days?: number
+          quality_lead_trivial_days?: number
           resource_red_pct?: number
           resource_yellow_pct?: number
           schedule_red_days?: number

@@ -3,6 +3,7 @@ import { ERRORS } from "@/lib/errors";
 
 const pctField = z.coerce.number().min(0).max(200);
 const daysField = z.coerce.number().int().min(0);
+const leadDaysField = z.coerce.number().int().min(1);
 
 export const ThresholdsSchema = z
   .object({
@@ -15,6 +16,10 @@ export const ThresholdsSchema = z
     scope_yellow_pct: pctField,
     scope_red_pct: pctField,
     epic_warning_margin_pct: z.coerce.number().min(1).max(99),
+    quality_lead_critical_days: leadDaysField,
+    quality_lead_major_days: leadDaysField,
+    quality_lead_minor_days: leadDaysField,
+    quality_lead_trivial_days: leadDaysField,
   })
   .refine((d) => d.budget_red_pct > d.budget_yellow_pct, {
     message: ERRORS.THRESHOLD_INVALID_RANGE,
@@ -45,4 +50,8 @@ export const DEFAULT_THRESHOLDS: ThresholdsInput = {
   scope_yellow_pct: 10,
   scope_red_pct: 20,
   epic_warning_margin_pct: 10,
+  quality_lead_critical_days: 5,
+  quality_lead_major_days: 10,
+  quality_lead_minor_days: 20,
+  quality_lead_trivial_days: 50,
 };

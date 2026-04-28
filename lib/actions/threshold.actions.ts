@@ -43,6 +43,10 @@ export async function updateThresholds(
     scope_yellow_pct: formData.get("scope_yellow_pct"),
     scope_red_pct: formData.get("scope_red_pct"),
     epic_warning_margin_pct: formData.get("epic_warning_margin_pct"),
+    quality_lead_critical_days: formData.get("quality_lead_critical_days"),
+    quality_lead_major_days: formData.get("quality_lead_major_days"),
+    quality_lead_minor_days: formData.get("quality_lead_minor_days"),
+    quality_lead_trivial_days: formData.get("quality_lead_trivial_days"),
   };
 
   const parsed = ThresholdsSchema.safeParse(raw);

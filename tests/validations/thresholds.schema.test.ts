@@ -12,6 +12,10 @@ const validInput = {
   scope_yellow_pct: "10",
   scope_red_pct: "20",
   epic_warning_margin_pct: "10",
+  quality_lead_critical_days: "5",
+  quality_lead_major_days: "10",
+  quality_lead_minor_days: "20",
+  quality_lead_trivial_days: "50",
 };
 
 describe("ThresholdsSchema", () => {
@@ -136,6 +140,10 @@ describe("ThresholdsSchema", () => {
         scope_yellow_pct: "20",
         scope_red_pct: "5",
         epic_warning_margin_pct: "10",
+        quality_lead_critical_days: "5",
+        quality_lead_major_days: "10",
+        quality_lead_minor_days: "20",
+        quality_lead_trivial_days: "50",
       });
       expect(result.success).toBe(false);
       if (!result.success) {

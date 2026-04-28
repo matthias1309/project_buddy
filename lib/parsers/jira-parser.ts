@@ -13,6 +13,8 @@ const COL_TSHIRT = ["t-shirt", "t shirt", "tshirt"];
 const COL_ASSIGNEE = ["assignee", "zugewiesene person"];
 const COL_CREATED = ["created", "erstellt"];
 const COL_RESOLVED = ["resolved", "gelöst", "geloest"];
+const COL_PRIORITY = ["priority", "priorität", "prioritaet"];
+const COL_TEAM = ["teams", "team"];
 
 const COL_SPRINT_NAME = ["sprint name", "sprint-name", "name"];
 const COL_SPRINT_STATE = ["state", "zustand"];
@@ -82,6 +84,8 @@ function parseIssuesSheet(
   const colAssignee = findColumnIndex(headerRow, COL_ASSIGNEE);
   const colCreated = findColumnIndex(headerRow, COL_CREATED);
   const colResolved = findColumnIndex(headerRow, COL_RESOLVED);
+  const colPriority = findColumnIndex(headerRow, COL_PRIORITY);
+  const colTeam = findColumnIndex(headerRow, COL_TEAM);
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as unknown[];
@@ -125,6 +129,8 @@ function parseIssuesSheet(
       sprint: colSprint !== -1 ? cellString(row[colSprint]) || undefined : undefined,
       epic: colEpic !== -1 ? cellString(row[colEpic]) || undefined : undefined,
       ...(tShirtDays !== undefined ? { tShirtDays } : {}),
+      priority: colPriority !== -1 ? cellString(row[colPriority]) || undefined : undefined,
+      team: colTeam !== -1 ? cellString(row[colTeam]) || undefined : undefined,
       assignee: colAssignee !== -1 ? cellString(row[colAssignee]) || undefined : undefined,
       createdDate: colCreated !== -1 ? cellDate(row[colCreated]) : undefined,
       resolvedDate: colResolved !== -1 ? cellDate(row[colResolved]) : undefined,

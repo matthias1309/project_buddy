@@ -8,6 +8,7 @@ import { calcResourceKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcScopeKPIs } from "@/lib/calculations/kpi-calculations";
 import { calcStabilityIndex } from "@/lib/calculations/stability-index";
 import { filterTimesheets, calcEpicBudget, calcEpicTileSummary } from "@/lib/calculations/epic-calculations";
+import { calcOpenBugsByPriority } from "@/lib/calculations/quality-calculations";
 import { StabilityBadge } from "@/components/shared/stability-badge";
 import { SprintFilter } from "@/components/shared/sprint-filter";
 import { TeamFilter } from "@/components/shared/team-filter";
@@ -17,6 +18,7 @@ import { ResourceCard } from "@/components/dashboard/resource-card";
 import { ScopeCard } from "@/components/dashboard/scope-card";
 import { TimeAnalysisCard } from "@/components/dashboard/time-analysis-card";
 import { EpicBudgetCard } from "@/components/dashboard/epic-budget-card";
+import { QualityCard } from "@/components/dashboard/quality-card";
 import { Button } from "@/components/ui/button";
 import type {
   JiraIssue,
@@ -44,6 +46,10 @@ const DEFAULT_THRESHOLDS: ProjectThresholds = {
   scopeYellowPct: 10,
   scopeRedPct: 20,
   epicWarningMarginPct: 10,
+  qualityLeadCriticalDays: 5,
+  qualityLeadMajorDays: 10,
+  qualityLeadMinorDays: 20,
+  qualityLeadTrivialDays: 50,
 };
 
 interface Props {
@@ -225,6 +231,10 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
         scopeYellowPct: rawThresholds.scope_yellow_pct,
         scopeRedPct: rawThresholds.scope_red_pct,
         epicWarningMarginPct: rawThresholds.epic_warning_margin_pct ?? 10,
+        qualityLeadCriticalDays: rawThresholds.quality_lead_critical_days ?? 5,
+        qualityLeadMajorDays: rawThresholds.quality_lead_major_days ?? 10,
+        qualityLeadMinorDays: rawThresholds.quality_lead_minor_days ?? 20,
+        qualityLeadTrivialDays: rawThresholds.quality_lead_trivial_days ?? 50,
       }
     : DEFAULT_THRESHOLDS;
 
@@ -254,6 +264,14 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
     thresholds.epicWarningMarginPct,
   );
   const epicSummary = calcEpicTileSummary(epicRows);
+
+  // Quality tile — open bugs by priority (filtered by sprint/team if active)
+  const bugIssues = issues.filter((i) => i.issueType?.toLowerCase() === "bug");
+  const filteredBugIssues =
+    selectedTeamNames.length > 0
+      ? bugIssues.filter((b) => b.team && selectedTeamNames.includes(b.team))
+      : bugIssues;
+  const openByPriority = hasJiraData ? calcOpenBugsByPriority(filteredBugIssues) : null;
 
   // Compute KPIs server-side
   const budgetKPIs = calcBudgetKPIs(budgetEntries, project.total_budget_eur);
@@ -420,6 +438,16 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
           overbooked={epicSummary.overbooked}
           nearLimit={epicSummary.nearLimit}
           hasJiraData={hasJiraData}
+          searchString={new URLSearchParams(
+            Object.entries(searchParams).flatMap(([k, v]) =>
+              Array.isArray(v) ? v.map((x) => [k, x]) : v ? [[k, v]] : [],
+            ),
+          ).toString()}
+        />
+
+        <QualityCard
+          projectId={params.id}
+          openByPriority={openByPriority}
           searchString={new URLSearchParams(
             Object.entries(searchParams).flatMap(([k, v]) =>
               Array.isArray(v) ? v.map((x) => [k, x]) : v ? [[k, v]] : [],

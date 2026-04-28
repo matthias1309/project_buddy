@@ -53,6 +53,10 @@ export default async function SettingsPage({ params }: Props) {
         scope_yellow_pct: rawThresholds.scope_yellow_pct,
         scope_red_pct: rawThresholds.scope_red_pct,
         epic_warning_margin_pct: rawThresholds.epic_warning_margin_pct ?? 10,
+        quality_lead_critical_days: rawThresholds.quality_lead_critical_days ?? 5,
+        quality_lead_major_days: rawThresholds.quality_lead_major_days ?? 10,
+        quality_lead_minor_days: rawThresholds.quality_lead_minor_days ?? 20,
+        quality_lead_trivial_days: rawThresholds.quality_lead_trivial_days ?? 50,
       }
     : DEFAULT_THRESHOLDS;
 

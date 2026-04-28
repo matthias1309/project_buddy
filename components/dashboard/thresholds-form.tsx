@@ -260,6 +260,51 @@ export function ThresholdsForm({
           </CardContent>
         </Card>
 
+        {/* Quality: Lead Time Thresholds */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Quality: Lead Time Thresholds</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <ThresholdField
+              id="quality_lead_critical_days"
+              name="quality_lead_critical_days"
+              label="Critical bugs"
+              hint="Max working days allowed for a Critical bug before it turns red"
+              defaultValue={initialValues.quality_lead_critical_days}
+              error={e.quality_lead_critical_days}
+              unit="days"
+            />
+            <ThresholdField
+              id="quality_lead_major_days"
+              name="quality_lead_major_days"
+              label="Major bugs"
+              hint="Max working days allowed for a Major bug before it turns red"
+              defaultValue={initialValues.quality_lead_major_days}
+              error={e.quality_lead_major_days}
+              unit="days"
+            />
+            <ThresholdField
+              id="quality_lead_minor_days"
+              name="quality_lead_minor_days"
+              label="Minor bugs"
+              hint="Max working days allowed for a Minor bug before it turns red"
+              defaultValue={initialValues.quality_lead_minor_days}
+              error={e.quality_lead_minor_days}
+              unit="days"
+            />
+            <ThresholdField
+              id="quality_lead_trivial_days"
+              name="quality_lead_trivial_days"
+              label="Trivial bugs"
+              hint="Max working days allowed for a Trivial bug before it turns red"
+              defaultValue={initialValues.quality_lead_trivial_days}
+              error={e.quality_lead_trivial_days}
+              unit="days"
+            />
+          </CardContent>
+        </Card>
+
         <div className="flex items-center gap-3">
           <SaveButton />
           <Button
