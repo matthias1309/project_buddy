@@ -13,7 +13,7 @@ The application runs inside the company intranet and is not publicly accessible.
 
 ## Requirements Overview
 
-### MVP Scope (implemented)
+### Implemented Features
 
 | Feature | Description |
 |---|---|
@@ -25,6 +25,11 @@ The application runs inside the company intranet and is not publicly accessible.
 | Project overview | List of all projects with traffic-light stability indicator |
 | Project dashboard | Four KPI cards (Budget, Schedule, Resources, Scope) with per-dimension traffic light |
 | Threshold configuration | Per-project yellow/red thresholds for all four KPI dimensions |
+| Time Analysis | Hours broken down by team, task category, and Jira ticket; bug cost metric |
+| Sprint configuration | Define sprint windows per project; filter all views by sprint |
+| Dark Mode | Light/dark theme toggle persisted in localStorage; respects OS preference |
+| Epic Budget Tracking | Compare planned PT (T-Shirt) vs. booked OA hours per Epic; overbooked/near-limit tile |
+| Quality | Open bugs by priority; average hours per priority; closed-bug lead-time table with configurable working-day thresholds per priority level |
 
 ### Future Scope (not in MVP)
 

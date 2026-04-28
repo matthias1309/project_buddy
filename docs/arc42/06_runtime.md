@@ -20,12 +20,12 @@ sequenceDiagram
     API->>API: Check file size ≤ 10 MB
     API->>API: Check file extension (.xlsx / .xls)
     API->>Parser: parseJiraExcel(buffer)
-    Parser->>Parser: Read workbook with SheetJS<br/>Normalize dash variants in headers (en-dash → hyphen)<br/>Map columns case-insensitively<br/>Skip empty rows<br/>Parse T-Shirt column → t_shirt_days (Epic rows only)<br/>Collect ParseErrors by row
+    Parser->>Parser: Read workbook with SheetJS<br/>Normalize dash variants in headers (en-dash → hyphen)<br/>Map columns case-insensitively<br/>Skip empty rows<br/>Parse T-Shirt → t_shirt_days (Epic rows only)<br/>Parse Priority, Teams → priority, team (all rows)<br/>Collect ParseErrors by row
     Parser-->>API: JiraParseResult { issues, sprints, errors, warnings }
     API->>DB: DELETE jira_issues WHERE project_id=?
     API->>DB: DELETE jira_sprints WHERE project_id=?
-    API->>DB: INSERT jira_issues incl. t_shirt_days (batches of 500)
-    API->>DB: INSERT jira_sprints (batches of 500)
+    API->>DB: INSERT jira_issues incl. t_shirt_days, priority, team (batches of 2000)
+    API->>DB: INSERT jira_sprints (batches of 2000)
     API->>DB: INSERT import_log { status, records_imported, … }
     API-->>UI: { success, recordsImported, errors, warnings }
     UI->>PM: Show success message + error list (if any)
@@ -55,7 +55,7 @@ sequenceDiagram
     RSC->>DB: getUser() — verify session
     DB-->>RSC: user or null
     Note over RSC: Redirect to /login if no session
-    RSC->>DB: SELECT project, jira_issues (incl. t_shirt_days), jira_sprints,<br/>oa_milestones, oa_budget_entries, project_thresholds,<br/>import_logs (last OA import), project_sprints (parallel Promise.all)
+    RSC->>DB: SELECT project, jira_issues (incl. t_shirt_days, priority, team),<br/>jira_sprints, oa_milestones, oa_budget_entries, project_thresholds,<br/>import_logs (last OA import), project_sprints (parallel Promise.all)
     RSC->>DB: fetchAllTimesheets() — paginated (see ADR-005)
     DB-->>RSC: All rows (RLS enforced)
     RSC->>Calc: calcBudgetKPIs(budgetEntries, totalBudget)
@@ -69,7 +69,9 @@ sequenceDiagram
     RSC->>Calc: calcEpicBudget(epics, allIssues, filtered, warningMarginPct)
     RSC->>Calc: calcEpicTileSummary(epicRows)
     Calc-->>RSC: EpicBudgetSummary { overbooked, nearLimit }
-    RSC->>Browser: Full HTML (KPI cards + Time Analysis tile + Epic Budget tile, stability badge)
+    RSC->>Calc: calcOpenBugsByPriority(filteredBugs)
+    Calc-->>RSC: OpenBugsByPriority { critical, major, minor, trivial, unknown }
+    RSC->>Browser: Full HTML (KPI cards + Time Analysis + Epic Budget + Quality tiles, stability badge)
     Browser->>PM: Rendered dashboard (target: < 2 s)
 ```
 
@@ -140,7 +142,7 @@ sequenceDiagram
 
     PM->>Form: Edit threshold values, click Save
     Form->>SA: formAction(formData)
-    SA->>SA: ThresholdsSchema.safeParse(formData)<br/>Validate all 9 fields + 4 refinements (incl. epic_warning_margin_pct)
+    SA->>SA: ThresholdsSchema.safeParse(formData)<br/>Validate all 13 fields + 4 refinements<br/>(incl. epic_warning_margin_pct + 4 quality lead-time thresholds)
     alt Validation fails
         SA-->>Form: { errors: { budget_red_pct: "…" } }
         Form->>PM: Inline error messages per field
@@ -192,4 +194,48 @@ sequenceDiagram
 - `filterTimesheets` is a pure function — filtering happens in the calculation layer, not in the DB query
 - Sprint filter uses the union of selected sprint date ranges (min start → max end); when combined with a month filter, the intersection is computed before passing `dateFrom`/`dateTo`
 - Rows with `t_shirt_days = null` receive `status = 'unknown'` and are sorted to the bottom of the table
+- The page works without JavaScript (GET form for filters, bookmarkable URLs)
+
+---
+
+## Scenario 6 — Quality Page Load
+
+A project manager navigates to the Quality detail page with an optional team/sprint filter to analyse bug lead times.
+
+```mermaid
+sequenceDiagram
+    actor PM as Project Manager
+    participant Browser
+    participant RSC as QualityPage<br/>(React Server Component)
+    participant Paginate as paginate.ts
+    participant DB as Supabase (PostgreSQL)
+    participant Calc as quality-calculations.ts
+
+    PM->>Browser: Navigate to /projects/[id]/quality?team=Team+Alpha
+    Browser->>RSC: HTTP GET (SSR request)
+    RSC->>DB: getUser() — verify session
+    RSC->>DB: SELECT project, jira_issues WHERE issue_type='Bug',<br/>project_thresholds (quality lead-time fields),<br/>project_sprints (parallel Promise.all)
+    RSC->>Paginate: fetchAllTimesheets(supabase, projectId)
+    DB-->>RSC: All rows (RLS enforced)
+    RSC->>RSC: Apply team filter: bug.team = "Team Alpha"
+    RSC->>RSC: Apply sprint filter: bug.sprint contains selected sprint name
+    RSC->>Calc: calcOpenBugsByPriority(filteredBugs)
+    Calc-->>RSC: { critical, major, minor, trivial, unknown }
+    RSC->>Calc: calcAvgHoursByPriority(filteredBugs, allTimesheets)
+    Note over Calc: Matches bug.issueKey against timesheet.ticketRef<br/>Bugs with no bookings contribute 0 h to group mean
+    Calc-->>RSC: AvgHoursByPriority { critical, major, minor, trivial, unknown }
+    RSC->>Calc: calcBugLeadTimes(filteredBugs, qualityThresholds)
+    Note over Calc: Lead time = calcWorkingDays(created, resolved)<br/>German federal holidays excluded (Easter algorithm)<br/>Only closed bugs (resolvedDate present) are returned
+    Calc-->>RSC: BugLeadTimeRow[] with leadTimeStatus red | green | none
+    RSC->>Browser: Full HTML (open bugs section + avg hours section + lead-time table)
+    Browser->>PM: Rendered page
+```
+
+**Key invariants:**
+- Bugs are filtered in the application layer (not in the DB query) using `jira_issues.team` and `jira_issues.sprint` — consistent with the filter pattern used on the Epic Budget page
+- Lead time is measured in German working days (Mon–Fri), excluding all 9 German federal holidays; the Easter date is computed analytically via the Anonymous Gregorian algorithm for any year
+- A bug exactly at its threshold is green (`leadTimeDays > threshold` → red, `≤` → green)
+- Bugs with no `priority` receive `leadTimeStatus = "none"` and no threshold is applied
+- Bugs with no `resolved_date` are excluded from the lead-time table but counted in the open-bugs section
+- The team filter uses `jira_issues.team` (Jira "Teams" custom column), not the OpenAir team field — the two are independent
 - The page works without JavaScript (GET form for filters, bookmarkable URLs)

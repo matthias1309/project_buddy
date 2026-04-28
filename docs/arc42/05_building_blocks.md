@@ -41,9 +41,10 @@ graph TD
   /(dashboard)/projects/[id]/
     page.tsx                      Project dashboard (Server Component)
     import/page.tsx               Import UI (client components)
-    settings/page.tsx             Threshold configuration (Server Component)
+    settings/page.tsx             Threshold + sprint configuration (Server Component)
     time/page.tsx                 Time Analysis page (Server Component)
     epics/page.tsx                Epic Budget detail page (Server Component)
+    quality/page.tsx              Quality detail page: open bugs, avg hours, lead-time table (Server Component)
 
 /components
   /ui                             shadcn/ui base components (do not edit)
@@ -56,7 +57,9 @@ graph TD
     scope-card.tsx                Scope KPI card with velocity mini-chart
     time-analysis-card.tsx        Time Analysis tile: last OA import date + current-month hours; links to /time
     epic-budget-card.tsx          Epic Budget tile: overbooked/near-limit counts with coloured badges; links to /epics
-    thresholds-form.tsx           Threshold settings form with reset dialog
+    quality-card.tsx              Quality tile: open bug count by priority, no traffic-light; links to /quality
+    thresholds-form.tsx           Threshold settings form incl. quality lead-time thresholds; reset dialog
+    sprint-manager.tsx            Sprint CRUD list on settings page
     time-by-team-chart.tsx        Horizontal bar chart: hours per team (Recharts)
     time-by-category-chart.tsx    Horizontal bar chart: hours per task category (Recharts)
   /import
@@ -65,6 +68,9 @@ graph TD
   /shared
     stability-badge.tsx           Traffic-light badge (green/yellow/red/none)
     login-form.tsx                Login form (uses auth Server Action)
+    sprint-filter.tsx             Multi-select sprint filter (URL param: sprint=, repeated)
+    team-filter.tsx               Multi-select team filter (URL param: team=, repeated)
+    theme-toggle.tsx              Light/dark mode toggle (next-themes)
 ```
 
 ---
@@ -76,6 +82,7 @@ graph TD
   auth.actions.ts                 login(), logout() Server Actions
   project.actions.ts              createProject() Server Action
   threshold.actions.ts            updateThresholds(), resetThresholds()
+  sprint.actions.ts               createSprint(), updateSprint(), deleteSprint()
 
 /app/api/projects/[id]/import/
   route.ts                        POST: file upload, parse, batch-insert
@@ -98,6 +105,9 @@ graph TD
 ```
 /lib/parsers
   jira-parser.ts                  Buffer → JiraParseResult
+                                  (columns: Issue Key, Summary, Issue Type, Status,
+                                   Story Points, Sprint, Epic Link, T-Shirt, Assignee,
+                                   Created, Resolved, Priority, Teams)
   openair-parser.ts               Buffer → OpenAirParseResult
 
 /lib/calculations
@@ -108,6 +118,10 @@ graph TD
                                   calcEpicHours, calcBugCost
   epic-calculations.ts            filterTimesheets, calcEpicBudget,
                                   calcEpicTileSummary
+  quality-calculations.ts         easterSunday, germanHolidays, calcWorkingDays
+                                  (German federal holidays, Mon–Fri),
+                                  calcOpenBugsByPriority, calcAvgHoursByPriority,
+                                  calcBugLeadTimes
 
 /lib/supabase
   paginate.ts                     fetchAllTimesheets, fetchAllTimesheetsForProjects
@@ -116,7 +130,8 @@ graph TD
 /lib/validations
   auth.schema.ts                  Zod schema for login
   project.schema.ts               Zod schema for project creation
-  thresholds.schema.ts            Zod schema for threshold update
+  thresholds.schema.ts            Zod schema for threshold update (incl. quality lead-time thresholds)
+  sprint.schema.ts                Zod schema for sprint create/update
 
 /lib/errors.ts                    Central error message constants
 /types/domain.types.ts            All business domain TypeScript types
@@ -161,5 +176,14 @@ All KPI functions are pure — they accept domain arrays and return a typed resu
 | `project_sprints` | Configured sprint windows per project (name, start_date, end_date); used to resolve sprint filter → date range |
 
 **Notable column additions (FEAT-011):**  
+`jira_issues.epic_link text` — Issue Key of the parent Epic; set on Story/Task rows; `null` on Epics themselves.  
 `jira_issues.t_shirt_days integer` — planned effort in person-days; set only on Epic rows during import; `null` when absent or non-numeric.  
 `project_thresholds.epic_warning_margin_pct integer` — percentage points below 100 % at which an Epic turns yellow (default 10).
+
+**Notable column additions (FEAT-012):**  
+`jira_issues.priority text` — parsed from the "Priority" Excel column; expected values: `Critical`, `Major`, `Minor`, `Trivial`; `null` when absent.  
+`jira_issues.team text` — parsed from the "Teams" custom Jira Excel column; `null` when absent.  
+`project_thresholds.quality_lead_critical_days integer` — max working days for a Critical bug before its lead time turns red (default 5).  
+`project_thresholds.quality_lead_major_days integer` — default 10.  
+`project_thresholds.quality_lead_minor_days integer` — default 20.  
+`project_thresholds.quality_lead_trivial_days integer` — default 50.
